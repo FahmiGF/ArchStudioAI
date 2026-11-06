@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ArchStudio AI — 3D Architecture & Interior Simulator (LFM 8B)</title>
+  <title>ArchStudio AI — 3D Architecture & 2D Blueprint CAD Simulator (LFM 8B)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Three.js CDN -->
@@ -21,20 +21,23 @@
       user-select: none;
     }
     .panel-glass {
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.88);
       backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .panel-active {
-      border-color: rgba(59, 130, 246, 0.5);
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+    .blueprint-bg {
+      background-color: #08172e;
+      background-image: 
+        linear-gradient(rgba(30, 77, 140, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 77, 140, 0.35) 1px, transparent 1px),
+        linear-gradient(rgba(30, 77, 140, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 77, 140, 0.15) 1px, transparent 1px);
+      background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
     }
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #0b0f19; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
-    /* Crosshair for First-Person Walkthrough */
     #walkthroughCrosshair {
       display: none;
       position: absolute;
@@ -49,72 +52,86 @@
     #walkthroughCrosshair::before, #walkthroughCrosshair::after {
       content: '';
       position: absolute;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.85);
     }
     #walkthroughCrosshair::before { top: 6px; left: 0; width: 14px; height: 2px; }
     #walkthroughCrosshair::after { top: 0; left: 6px; width: 2px; height: 14px; }
+    .floating-coord-badge {
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.15s ease;
+    }
   </style>
 </head>
-<body class="flex flex-col h-screen w-screen">
+<body class="h-screen w-screen flex flex-col antialiased">
 
-  <!-- Top Application Bar -->
-  <header class="panel-glass z-30 px-4 py-2 border-b border-white/10 flex items-center justify-between shrink-0 h-14">
+  <!-- Top Navigation Header -->
+  <header class="h-14 panel-glass border-b border-white/10 px-4 flex items-center justify-between z-30 shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-        <i data-lucide="box" class="w-5 h-5 text-white"></i>
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+        <i data-lucide="building-2" class="w-5 h-5"></i>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-sm font-bold text-white tracking-wide">ArchStudio <span class="text-blue-400">AI</span></h1>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">LFM 8B</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">WebGL2 3D</span>
+          <h1 class="font-bold text-sm text-white tracking-wide">ArchStudio AI</h1>
+          <span class="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">v2.5 LFM 8B</span>
+          <span class="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">3D + 2D CAD</span>
         </div>
-        <p class="text-[10px] text-slate-400" id="projectTitle">Proyek: Rumah Minimalis Modern 1 Lantai</p>
+        <p class="text-[10px] text-slate-400" id="headerRoomLabel">Ruang Tamu & Keluarga (5.0m × 4.0m)</p>
       </div>
     </div>
 
-    <!-- Center Mode Switcher -->
-    <div class="flex items-center bg-[#070b14] p-1 rounded-xl border border-white/5 text-xs">
-      <button onclick="setCameraMode('orbit')" id="btnCamOrbit" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition">
+    <!-- View & Mode Toggles -->
+    <div class="flex items-center gap-1.5 bg-[#080d1a] p-1 rounded-xl border border-white/5 text-xs">
+      <button onclick="setCameraMode('orbit')" id="btnCamOrbit" class="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition">
         <i data-lucide="orbit" class="w-3.5 h-3.5"></i>
-        <span>Orbit 3D</span>
+        <span class="hidden md:inline">3D Orbit</span>
       </button>
-      <button onclick="setCameraMode('walk')" id="btnCamWalk" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition">
+      <button onclick="setCameraMode('walk')" id="btnCamWalk" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition">
         <i data-lucide="footprints" class="w-3.5 h-3.5"></i>
-        <span>Walkthrough</span>
+        <span class="hidden md:inline">Walkthrough</span>
       </button>
-      <button onclick="setCameraMode('top')" id="btnCamTop" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition">
-        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-        <span>Denah 2D</span>
+      <button onclick="toggleBlueprintMode()" id="btnBlueprintMode" class="px-2.5 py-1.5 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 font-medium flex items-center gap-1.5 transition border border-cyan-500/20">
+        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+        <span>2D Blueprint CAD</span>
       </button>
     </div>
 
-    <!-- Right Quick Actions -->
+    <!-- Quick Utilities -->
     <div class="flex items-center gap-2">
       <!-- Lighting Selector -->
-      <div class="flex items-center bg-[#070b14] px-2 py-1 rounded-lg border border-white/5 text-xs">
-        <span class="text-slate-400 mr-2 flex items-center gap-1"><i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i> Cahaya:</span>
-        <select id="lightingSelect" onchange="setLightingPreset(this.value)" class="bg-transparent text-white focus:outline-none cursor-pointer">
-          <option value="noon" class="bg-slate-900">Siang (Cerah)</option>
-          <option value="morning" class="bg-slate-900">Pagi (Emas)</option>
-          <option value="sunset" class="bg-slate-900">Senja (Warm)</option>
+      <div class="flex items-center gap-1 bg-[#080d1a] px-2 py-1 rounded-lg border border-white/10 text-xs">
+        <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i>
+        <select id="lightingSelect" onchange="setLightingPreset(this.value)" class="bg-transparent text-slate-300 text-xs focus:outline-none cursor-pointer">
+          <option value="noon" class="bg-slate-900">Siang (6000K)</option>
+          <option value="morning" class="bg-slate-900">Pagi (Golden)</option>
+          <option value="sunset" class="bg-slate-900">Senja (Sunset)</option>
           <option value="night" class="bg-slate-900">Malam (Interior)</option>
         </select>
       </div>
 
+      <!-- Construction Simulator -->
       <button onclick="toggleConstructionMode()" id="btnConstruction" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs flex items-center gap-1.5 transition" title="Simulasi Tahap Konstruksi">
         <i data-lucide="hammer" class="w-3.5 h-3.5 text-orange-400"></i>
         <span class="hidden sm:inline">Konstruksi</span>
       </button>
 
+      <!-- RAB Budget Calculator -->
+      <button onclick="openRABModal()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 transition" title="Estimasi RAB Arsitektur">
+        <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">RAB (Biaya)</span>
+      </button>
+
+      <!-- HD Render Snapshot -->
       <button onclick="captureRender()" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs flex items-center gap-1.5 transition" title="Export Screenshot HD">
         <i data-lucide="camera" class="w-3.5 h-3.5 text-blue-400"></i>
         <span class="hidden sm:inline">Render</span>
       </button>
 
+      <!-- AI Assistant Button -->
       <button onclick="toggleAIPanel()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white font-medium text-xs flex items-center gap-1.5 transition shadow-lg shadow-indigo-500/25">
         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-        <span>AI Assistant</span>
+        <span>AI Copilot</span>
       </button>
     </div>
   </header>
@@ -126,7 +143,7 @@
   <div class="flex-1 flex overflow-hidden relative">
 
     <!-- Left Toolbar & Assets Palette -->
-    <aside class="panel-glass w-72 shrink-0 border-r border-white/10 flex flex-col z-20 transition-all duration-300" id="leftSidebar">
+    <aside class="panel-glass w-80 shrink-0 border-r border-white/10 flex flex-col z-20 transition-all duration-300" id="leftSidebar">
       <!-- Toolbar Tabs -->
       <div class="flex border-b border-white/10 p-2 gap-1 bg-[#090d16]">
         <button onclick="switchLeftTab('rooms')" id="btnTabRooms" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1">
@@ -139,7 +156,7 @@
           <i data-lucide="palette" class="w-3.5 h-3.5"></i> Material
         </button>
         <button onclick="switchLeftTab('templates')" id="btnTabTemplates" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center gap-1">
-          <i data-lucide="folder" class="w-3.5 h-3.5"></i> Template
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i> Maps
         </button>
       </div>
 
@@ -147,54 +164,54 @@
       <div id="tabContentRooms" class="p-4 space-y-4 overflow-y-auto flex-1">
         <div>
           <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <i data-lucide="ruler" class="w-3.5 h-3.5 text-blue-400"></i> Geometri Ruangan
+            <i data-lucide="ruler" class="w-3.5 h-3.5 text-blue-400"></i> Dimensi & Parameter Ruangan
           </h3>
           <div class="space-y-3 bg-[#0a0f1d] p-3 rounded-xl border border-white/5 text-xs">
             <div>
               <div class="flex justify-between text-slate-400 mb-1">
-                <span>Lebar (Width):</span>
-                <span id="labelWidth" class="text-white font-mono font-bold">5.0 m</span>
+                <span>Lebar Ruang (Width):</span>
+                <span id="labelWidth" class="text-white font-mono font-bold">6.0 m</span>
               </div>
-              <input type="range" id="sliderWidth" min="3.0" max="10.0" step="0.5" value="5.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderWidth" min="3.0" max="15.0" step="0.5" value="6.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div>
               <div class="flex justify-between text-slate-400 mb-1">
-                <span>Panjang (Length):</span>
-                <span id="labelLength" class="text-white font-mono font-bold">4.0 m</span>
+                <span>Panjang Ruang (Length):</span>
+                <span id="labelLength" class="text-white font-mono font-bold">5.0 m</span>
               </div>
-              <input type="range" id="sliderLength" min="3.0" max="10.0" step="0.5" value="4.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderLength" min="3.0" max="15.0" step="0.5" value="5.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div>
               <div class="flex justify-between text-slate-400 mb-1">
                 <span>Tinggi Plafon (Height):</span>
-                <span id="labelHeight" class="text-white font-mono font-bold">3.0 m</span>
+                <span id="labelHeight" class="text-white font-mono font-bold">3.2 m</span>
               </div>
-              <input type="range" id="sliderHeight" min="2.6" max="4.5" step="0.2" value="3.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderHeight" min="2.6" max="5.5" step="0.2" value="3.2" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div class="pt-2 border-t border-white/5 flex items-center justify-between">
-              <span class="text-slate-400">Luas Lantai:</span>
-              <span id="labelArea" class="text-emerald-400 font-bold font-mono">20.0 m²</span>
+              <span class="text-slate-400">Luas / Volume:</span>
+              <span id="labelArea" class="text-emerald-400 font-bold font-mono">30.0 m² (96.0 m³)</span>
             </div>
           </div>
         </div>
 
         <!-- Wall Cutaway & Ceiling Options -->
         <div>
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Visibilitas Dinding</h3>
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Visibilitas Dinding & Struktur</h3>
           <div class="space-y-2 bg-[#0a0f1d] p-3 rounded-xl border border-white/5 text-xs">
             <label class="flex items-center justify-between cursor-pointer">
               <span class="text-slate-300">Potongan Dinding Depan (Cutaway)</span>
               <input type="checkbox" id="checkCutaway" checked onchange="toggleWallCutaway()" class="accent-blue-500 cursor-pointer">
             </label>
             <label class="flex items-center justify-between cursor-pointer">
-              <span class="text-slate-300">Tampilkan Plafon / Atap</span>
+              <span class="text-slate-300">Tampilkan Plafon Ruang</span>
               <input type="checkbox" id="checkCeiling" onchange="toggleCeiling()" class="accent-blue-500 cursor-pointer">
             </label>
             <label class="flex items-center justify-between cursor-pointer">
-              <span class="text-slate-300">Atap Limasan / Pelana (Exterior)</span>
+              <span class="text-slate-300">Atap Limasan / Pelana Exterior</span>
               <input type="checkbox" id="checkRoof" onchange="toggleExteriorRoof()" class="accent-blue-500 cursor-pointer">
             </label>
           </div>
@@ -214,78 +231,229 @@
         </div>
       </div>
 
-      <!-- Tab Content 2: Furniture Library -->
+      <!-- Tab Content 2: Comprehensive Furniture Library (35+ Items) -->
       <div id="tabContentFurniture" class="hidden p-4 space-y-4 overflow-y-auto flex-1">
-        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="library" class="w-3.5 h-3.5 text-blue-400"></i> Perpustakaan Perabot
-        </h3>
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="library" class="w-3.5 h-3.5 text-blue-400"></i> Katalog Perabot (40+ Elemen)
+          </h3>
+        </div>
 
-        <!-- Furniture categories -->
-        <div class="space-y-3">
-          <div>
-            <p class="text-[11px] font-semibold text-blue-400 mb-1.5">🛋️ Ruang Tamu & Keluarga</p>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <button onclick="spawnFurniture('sofa')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🛋️</span>
-                <span>Sofa Modern</span>
+        <!-- Furniture Search Filter -->
+        <input type="text" id="furnitureSearch" placeholder="Cari perabot / barang..." oninput="filterFurnitureItems(this.value)"
+          class="w-full bg-[#0c1322] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+
+        <!-- Furniture Categories Container -->
+        <div class="space-y-4" id="furnitureListContainer">
+          
+          <!-- Category 1: Living Room -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-blue-400 mb-1.5 flex items-center gap-1">
+              <span>🛋️ Ruang Tamu & Santai</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('sofa')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛋️</span> <span>Sofa 3-Seat</span>
               </button>
-              <button onclick="spawnFurniture('table')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">☕</span>
-                <span>Meja Kopi</span>
+              <button onclick="spawnFurniture('sofa_l')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛋️</span> <span>Sofa L-Shape</span>
               </button>
-              <button onclick="spawnFurniture('tv')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">📺</span>
-                <span>Konsol TV</span>
+              <button onclick="spawnFurniture('armchair')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🪑</span> <span>Armchair</span>
               </button>
-              <button onclick="spawnFurniture('plant')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🪴</span>
-                <span>Monstera</span>
+              <button onclick="spawnFurniture('table')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">☕</span> <span>Meja Kopi</span>
+              </button>
+              <button onclick="spawnFurniture('tv')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">📺</span> <span>Konsol TV</span>
+              </button>
+              <button onclick="spawnFurniture('bookshelf')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">📚</span> <span>Rak Buku</span>
+              </button>
+              <button onclick="spawnFurniture('floor_lamp')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💡</span> <span>Floor Lamp</span>
+              </button>
+              <button onclick="spawnFurniture('rug')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🧶</span> <span>Karpet Rug</span>
               </button>
             </div>
           </div>
 
-          <div>
-            <p class="text-[11px] font-semibold text-indigo-400 mb-1.5">🛏️ Kamar Tidur & Kerja</p>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <button onclick="spawnFurniture('bed')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🛏️</span>
-                <span>Tempat Tidur</span>
+          <!-- Category 2: Bedroom -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center gap-1">
+              <span>🛏️ Kamar Tidur</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('bed')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛏️</span> <span>Kasur King</span>
               </button>
-              <button onclick="spawnFurniture('wardrobe')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🚪</span>
-                <span>Lemari Baju</span>
+              <button onclick="spawnFurniture('bed_single')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛏️</span> <span>Kasur Single</span>
               </button>
-              <button onclick="spawnFurniture('desk')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">💻</span>
-                <span>Meja Kerja</span>
+              <button onclick="spawnFurniture('wardrobe')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚪</span> <span>Lemari Wardrobe</span>
               </button>
-              <button onclick="spawnFurniture('bathtub')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🛁</span>
-                <span>Bathtub</span>
+              <button onclick="spawnFurniture('dressing_table')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🪞</span> <span>Meja Rias</span>
+              </button>
+              <button onclick="spawnFurniture('nightstand')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🗄️</span> <span>Meja Nakas</span>
               </button>
             </div>
           </div>
 
-          <div>
-            <p class="text-[11px] font-semibold text-emerald-400 mb-1.5">🏊 Exterior & Lanskap</p>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <button onclick="spawnFurniture('pool')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🏊</span>
-                <span>Kolam Renang</span>
+          <!-- Category 3: Kitchen & Dining -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center gap-1">
+              <span>🍽️ Dapur & Ruang Makan</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('dining_table')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🪑</span> <span>Meja Makan 6</span>
               </button>
-              <button onclick="spawnFurniture('tree')" class="p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-lg">🌴</span>
-                <span>Pohon Palem</span>
+              <button onclick="spawnFurniture('kitchen_island')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🍳</span> <span>Kitchen Island</span>
+              </button>
+              <button onclick="spawnFurniture('kitchen_cabinet')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🗄️</span> <span>Kabinet & Kompor</span>
+              </button>
+              <button onclick="spawnFurniture('refrigerator')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🧊</span> <span>Kulkas 2 Pintu</span>
               </button>
             </div>
           </div>
+
+          <!-- Category 4: Bathroom -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-cyan-400 mb-1.5 flex items-center gap-1">
+              <span>🚿 Kamar Mandi</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('bathtub')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛁</span> <span>Bathtub Akrilik</span>
+              </button>
+              <button onclick="spawnFurniture('shower_box')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚿</span> <span>Shower Box Kaca</span>
+              </button>
+              <button onclick="spawnFurniture('toilet')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚽</span> <span>Toilet Duduk</span>
+              </button>
+              <button onclick="spawnFurniture('sink_vanity')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚰</span> <span>Washtafel Vanity</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 5: Perkantoran & Studio -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-indigo-400 mb-1.5 flex items-center gap-1">
+              <span>💼 Perkantoran & Studio</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('desk')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💻</span> <span>Meja Eksekutif</span>
+              </button>
+              <button onclick="spawnFurniture('office_chair')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💺</span> <span>Kursi Ergonomis</span>
+              </button>
+              <button onclick="spawnFurniture('meeting_table')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🤝</span> <span>Meja Rapat</span>
+              </button>
+              <button onclick="spawnFurniture('whiteboard')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">📋</span> <span>Whiteboard</span>
+              </button>
+              <button onclick="spawnFurniture('server_rack')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🖥️</span> <span>Rak Server</span>
+              </button>
+              <button onclick="spawnFurniture('water_dispenser')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💧</span> <span>Dispenser Galon</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 6: Komersial & Mall -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-rose-400 mb-1.5 flex items-center gap-1">
+              <span>🛍️ Distrik Mall & Retail</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('shelf_gondola')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛒</span> <span>Rak Gondola</span>
+              </button>
+              <button onclick="spawnFurniture('cashier_counter')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💳</span> <span>Meja Kasir</span>
+              </button>
+              <button onclick="spawnFurniture('mannequin')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">👗</span> <span>Manekin Display</span>
+              </button>
+              <button onclick="spawnFurniture('display_case')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">💎</span> <span>Etalase Kaca</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 7: Industri & Gudang Pabrik -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-orange-400 mb-1.5 flex items-center gap-1">
+              <span>🏭 Industri & Gudang Pabrik</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('pallet_stack')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">📦</span> <span>Tumpukan Pallet</span>
+              </button>
+              <button onclick="spawnFurniture('forklift')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚜</span> <span>Forklift Industri</span>
+              </button>
+              <button onclick="spawnFurniture('storage_tank')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🛢️</span> <span>Tangki Silo</span>
+              </button>
+              <button onclick="spawnFurniture('hvac_unit')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🌀</span> <span>Unit HVAC Sentral</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 8: Eksterior, Lanskap & Outdoor -->
+          <div class="furniture-category-box">
+            <p class="text-[11px] font-semibold text-emerald-400 mb-1.5 flex items-center gap-1">
+              <span>🌴 Eksterior, Lanskap & Outdoor</span>
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('pool')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🏊</span> <span>Kolam Renang</span>
+              </button>
+              <button onclick="spawnFurniture('tree')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🌴</span> <span>Pohon Palem</span>
+              </button>
+              <button onclick="spawnFurniture('pine_tree')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🌲</span> <span>Pohon Cemara</span>
+              </button>
+              <button onclick="spawnFurniture('park_bench')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🪵</span> <span>Bangku Taman</span>
+              </button>
+              <button onclick="spawnFurniture('street_lamp')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🏮</span> <span>Lampu Taman</span>
+              </button>
+              <button onclick="spawnFurniture('car_sedan')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚗</span> <span>Mobil Sedan</span>
+              </button>
+              <button onclick="spawnFurniture('solar_panel')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">⚡</span> <span>Panel Surya</span>
+              </button>
+              <button onclick="spawnFurniture('fence')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚧</span> <span>Pagar Kayu</span>
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <!-- Tab Content 3: Material Studio -->
       <div id="tabContentMaterials" class="hidden p-4 space-y-4 overflow-y-auto flex-1">
         <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="sparkle" class="w-3.5 h-3.5 text-blue-400"></i> Kustomisasi Material
+          <i data-lucide="palette" class="w-3.5 h-3.5 text-blue-400"></i> Kustomisasi Tekstur & Material
         </h3>
 
         <!-- Floor Materials -->
@@ -324,39 +492,87 @@
               Beton
             </button>
             <button onclick="applyMaterial('wall', 'wood_panel')" class="p-2 rounded-lg bg-amber-900 text-amber-100 font-semibold text-center hover:opacity-90">
-              Kayu
+              Panel Kayu
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Tab Content 4: Templates -->
+      <!-- Tab Content 4: Templates & Maps -->
       <div id="tabContentTemplates" class="hidden p-4 space-y-3 overflow-y-auto flex-1">
         <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-          <i data-lucide="layout-template" class="w-3.5 h-3.5 text-blue-400"></i> Desain Siap Pakai
+          <i data-lucide="map" class="w-3.5 h-3.5 text-blue-400"></i> Pilihan Map & Arsitektur
         </h3>
         <div id="templateListContainer" class="space-y-2.5">
           <!-- Populated by JS -->
         </div>
       </div>
 
-      <!-- Selected Object Inspector (Floats at bottom) -->
+      <!-- Selected Object Inspector & Reposition Controls -->
       <div id="objectInspector" class="p-3 bg-[#070b14] border-t border-white/10 text-xs hidden">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-white flex items-center gap-1.5" id="inspectorName">
-            <i data-lucide="box" class="w-3.5 h-3.5 text-blue-400"></i> Sofa Modern
+        <div class="flex items-center justify-between mb-2 pb-1 border-b border-white/5">
+          <span class="font-bold text-white flex items-center gap-1.5 truncate" id="inspectorName">
+            <i data-lucide="box" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i> Sofa Modern
           </span>
-          <button onclick="deleteSelectedObject()" class="text-red-400 hover:text-red-300 text-xs flex items-center gap-0.5">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
-          </button>
+          <div class="flex items-center gap-1">
+            <button onclick="duplicateSelectedObject()" class="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-white/5" title="Duplikat Objek">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="deleteSelectedObject()" class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-white/5" title="Hapus Objek">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <button onclick="rotateSelectedObject(-45)" class="p-1.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center gap-1 text-[11px]">
-            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Putar -45°
-          </button>
-          <button onclick="rotateSelectedObject(45)" class="p-1.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center gap-1 text-[11px]">
-            <i data-lucide="rotate-cw" class="w-3 h-3"></i> Putar +45°
-          </button>
+
+        <!-- Coordinate Sliders & Movement Controls -->
+        <div class="space-y-2">
+          <!-- Position X -->
+          <div>
+            <div class="flex justify-between text-[11px] text-slate-400 mb-0.5">
+              <span>Posisi X (Kiri-Kanan):</span>
+              <span id="labelObjX" class="text-blue-400 font-mono font-bold">0.0 m</span>
+            </div>
+            <input type="range" id="sliderObjX" min="-6.0" max="6.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
+          </div>
+
+          <!-- Position Z -->
+          <div>
+            <div class="flex justify-between text-[11px] text-slate-400 mb-0.5">
+              <span>Posisi Z (Maju-Mundur):</span>
+              <span id="labelObjZ" class="text-blue-400 font-mono font-bold">0.0 m</span>
+            </div>
+            <input type="range" id="sliderObjZ" min="-6.0" max="6.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
+          </div>
+
+          <!-- D-Pad Nudge Buttons -->
+          <div class="bg-[#0a0f1d] p-2 rounded-lg border border-white/5 flex items-center justify-between">
+            <span class="text-[10px] text-slate-400 font-medium">Geser Cepat (0.2m):</span>
+            <div class="grid grid-cols-3 gap-1 w-24">
+              <div></div>
+              <button onclick="nudgeSelectedObject(0, -0.2)" class="p-1 rounded bg-white/5 hover:bg-white/15 text-white flex items-center justify-center text-xs" title="Maju">▲</button>
+              <div></div>
+              <button onclick="nudgeSelectedObject(-0.2, 0)" class="p-1 rounded bg-white/5 hover:bg-white/15 text-white flex items-center justify-center text-xs" title="Kiri">◀</button>
+              <div class="flex items-center justify-center text-[10px] text-slate-500">•</div>
+              <button onclick="nudgeSelectedObject(0.2, 0)" class="p-1 rounded bg-white/5 hover:bg-white/15 text-white flex items-center justify-center text-xs" title="Kanan">▶</button>
+              <div></div>
+              <button onclick="nudgeSelectedObject(0, 0.2)" class="p-1 rounded bg-white/5 hover:bg-white/15 text-white flex items-center justify-center text-xs" title="Mundur">▼</button>
+              <div></div>
+            </div>
+          </div>
+
+          <!-- Rotation Controls -->
+          <div class="grid grid-cols-3 gap-1 pt-1">
+            <button onclick="rotateSelectedObject(-45)" class="p-1.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center gap-1 text-[11px]">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> -45°
+            </button>
+            <button onclick="rotateSelectedObject(45)" class="p-1.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center gap-1 text-[11px]">
+              <i data-lucide="rotate-cw" class="w-3 h-3"></i> +45°
+            </button>
+            <button onclick="rotateSelectedObject(90)" class="p-1.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center gap-1 text-[11px]">
+              <i data-lucide="refresh-cw" class="w-3 h-3"></i> 90°
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500 italic text-center">💡 Tips: Anda juga bisa langsung drag objek menggunakan mouse di 3D!</p>
         </div>
       </div>
     </aside>
@@ -365,15 +581,26 @@
     <main class="flex-1 relative h-full w-full overflow-hidden" id="viewportContainer">
       <div id="threeCanvas" class="w-full h-full"></div>
 
-      <!-- Floating 2D Floorplan Overlay / Mini-Map -->
-      <div class="absolute bottom-4 left-4 z-20 panel-glass p-2.5 rounded-2xl shadow-2xl border border-white/10 w-64 h-64 flex flex-col" id="miniFloorplan">
+      <!-- Floating 3D Coordinate Badge (Follows Selected Mesh) -->
+      <div id="floatingBadge" class="floating-coord-badge absolute hidden z-20 px-2 py-1 rounded-md bg-blue-600/90 text-white text-[11px] font-mono shadow-lg border border-blue-400/50 backdrop-blur">
+        X: 0.0m | Z: 0.0m
+      </div>
+
+      <!-- Floating Mini 2D Floorplan CAD Overlay -->
+      <div class="absolute bottom-4 left-4 z-20 panel-glass p-2.5 rounded-2xl shadow-2xl border border-white/10 w-72 h-72 flex flex-col" id="miniFloorplan">
         <div class="flex items-center justify-between pb-1.5 border-b border-white/10 text-xs">
           <span class="font-bold text-slate-200 flex items-center gap-1">
             <i data-lucide="compass" class="w-3.5 h-3.5 text-blue-400"></i> Denah 2D Interaktif
           </span>
-          <span class="text-[10px] text-slate-400 font-mono" id="miniPlanScale">1 : 50</span>
+          <button onclick="toggleBlueprintMode()" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/30">
+            <i data-lucide="maximize-2" class="w-3 h-3"></i> Full Blueprint
+          </button>
         </div>
-        <canvas id="floorplan2DCanvas" class="flex-1 w-full bg-[#080d1a] rounded-lg mt-1 border border-white/5"></canvas>
+        <canvas id="floorplan2DCanvas" class="flex-1 w-full bg-[#080d1a] rounded-lg mt-1 border border-white/5 cursor-crosshair" title="Klik dan drag perabot untuk memindahkan di 2D"></canvas>
+        <div class="flex justify-between items-center pt-1 text-[10px] text-slate-400">
+          <span>Skala CAD: 1:50</span>
+          <span class="text-cyan-400">Drag titik untuk geser perabot</span>
+        </div>
       </div>
 
       <!-- Construction Timeline Bar (Shown when active) -->
@@ -389,7 +616,7 @@
       <!-- First-Person Controls Help Tip -->
       <div id="walkthroughHint" class="hidden absolute top-4 right-4 z-20 panel-glass px-4 py-2 rounded-xl text-xs text-slate-300 border border-white/10 flex items-center gap-2">
         <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
-        <span>Gunakan <strong>W, A, S, D</strong> untuk berjalan. Klik canvas & gerakkan mouse untuk melihat sekeliling. Tekan <strong>ESC</strong> untuk keluar.</span>
+        <span>Gunakan <strong>W, A, S, D</strong> untuk berjalan. Klik kanvas & gerakkan mouse untuk melihat sekeliling. Tekan <strong>ESC</strong> untuk keluar.</span>
       </div>
     </main>
 
@@ -415,25 +642,24 @@
 
       <!-- AI Chat History Container -->
       <div id="aiChatHistory" class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
-        <!-- Initial Message -->
         <div class="flex gap-2">
           <div class="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center shrink-0 text-indigo-400">
             <i data-lucide="bot" class="w-3.5 h-3.5"></i>
           </div>
           <div class="bg-[#0b1220] border border-white/5 rounded-xl p-2.5 text-slate-300 leading-relaxed space-y-1">
             <p class="font-semibold text-white">Halo! Saya Asisten Arsitektur LFM 8B 🏛️</p>
-            <p>Ketik perintah desain seperti:</p>
+            <p>Fitur baru telah siap:</p>
             <ul class="list-disc list-inside text-[11px] text-blue-300 space-y-0.5 pt-1">
-              <li>"Buatkan ruang tamu 6x5 meter"</li>
-              <li>"Ubah lantai menjadi marmer"</li>
-              <li>"Pencahayaan senja"</li>
-              <li>"Tambahkan tempat tidur king"</li>
+              <li>Pindahkan barang bebas via <strong>Drag Mouse</strong> atau slider koordinat</li>
+              <li>Buka <strong>Mode 2D Blueprint CAD</strong> untuk drafting teknis</li>
+              <li>Pilihan 40+ perabot (Kantor, Industri, Mall, Villa)</li>
+              <li>Perhitungan Estimasi <strong>RAB Konstruksi</strong></li>
             </ul>
           </div>
         </div>
       </div>
 
-      <!-- Design Critic Evaluation Modal/Pill (Hidden by default) -->
+      <!-- Design Critic Evaluation Modal/Pill -->
       <div id="criticResultBox" class="hidden p-3 bg-[#0a1122] border-t border-b border-indigo-500/20 text-xs space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-bold text-white flex items-center gap-1">
@@ -460,7 +686,135 @@
 
   </div>
 
-  <!-- Main Three.js Application Logic -->
+  <!-- ======================================================== -->
+  <!-- FULLSCREEN 2D BLUEPRINT CAD DRAFTING MODAL -->
+  <!-- ======================================================== -->
+  <div id="blueprintCADModal" class="hidden fixed inset-0 z-50 bg-[#061021]/95 backdrop-blur-md flex flex-col">
+    <!-- CAD Toolbar Header -->
+    <div class="h-14 panel-glass border-b border-cyan-500/20 px-6 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/30 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+          <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+            <span>Architectural Blueprint CAD Studio</span>
+            <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-mono border border-cyan-500/30">DIN 1356-1</span>
+          </h2>
+          <p class="text-[10px] text-cyan-300/70" id="cadHeaderSubtitle">Skala 1:50 — Proyeksi Ortogonal Top-Down</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMeasureTool()" id="btnMeasureTool" class="px-3 py-1.5 rounded-lg bg-cyan-900/40 hover:bg-cyan-800/50 text-cyan-200 border border-cyan-500/30 text-xs flex items-center gap-1.5 transition">
+          <i data-lucide="ruler" class="w-3.5 h-3.5"></i>
+          <span id="measureBtnText">Ukur Jarak (Ruler)</span>
+        </button>
+        <button onclick="exportBlueprintPNG()" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-blue-500/20">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Ekspor Blueprint PNG</span>
+        </button>
+        <button onclick="toggleBlueprintMode()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- CAD Canvas Container with Grid Background -->
+    <div class="flex-1 relative blueprint-bg overflow-hidden flex items-center justify-center p-6" id="cadCanvasContainer">
+      <canvas id="cadFullscreenCanvas" class="shadow-2xl rounded-xl border border-cyan-500/30 cursor-crosshair"></canvas>
+
+      <!-- Technical Drawing Info Box (Title Block) -->
+      <div class="absolute bottom-8 right-8 panel-glass p-3 rounded-xl border border-cyan-500/30 text-xs w-72 space-y-1 font-mono text-cyan-100">
+        <div class="font-bold text-white border-b border-cyan-500/20 pb-1 flex justify-between">
+          <span>ARCHSTUDIO CAD</span>
+          <span id="cadScaleLabel">SCALE 1:50</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span class="text-cyan-400">Ruangan:</span>
+          <span id="cadRoomName" class="text-white">Living Pavilion</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span class="text-cyan-400">Dimensi:</span>
+          <span id="cadRoomDim" class="text-white">6.0m × 5.0m</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span class="text-cyan-400">Luas Lantai:</span>
+          <span id="cadRoomArea" class="text-emerald-400 font-bold">30.00 m²</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span class="text-cyan-400">Total Furnitur:</span>
+          <span id="cadFurnCount" class="text-white">7 Unit</span>
+        </div>
+        <p class="text-[9px] text-cyan-400/60 pt-1 border-t border-cyan-500/20">DRAG ELEMEN SECARA LANGSUNG PADA DENAH UNTUK MEMINDAHKAN</p>
+      </div>
+
+      <!-- Distance Measurement Overlay Display -->
+      <div id="measureResultBadge" class="hidden absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-cyan-600 text-white font-mono text-xs shadow-xl border border-cyan-300 flex items-center gap-2">
+        <i data-lucide="ruler" class="w-4 h-4"></i>
+        <span id="measureResultText">Jarak Terukur: 0.00 m</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- RAB BUDGET ESTIMATION MODAL -->
+  <!-- ======================================================== -->
+  <div id="rabModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="panel-glass max-w-lg w-full rounded-2xl border border-emerald-500/30 p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Rencana Anggaran Biaya (RAB) Arsitektur</h3>
+            <p class="text-[11px] text-slate-400">Estimasi Biaya Konstruksi Fisik & Pengadaan Perabot</p>
+          </div>
+        </div>
+        <button onclick="closeRABModal()" class="text-slate-400 hover:text-white p-1 rounded">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div class="flex justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <span class="text-slate-300">1. Pekerjaan Struktur & Pondasi (per m²):</span>
+          <span class="font-mono font-bold text-white" id="rabStructureCost">Rp 84.000.000</span>
+        </div>
+        <div class="flex justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <span class="text-slate-300">2. Dinding, Plesteran & Plafon:</span>
+          <span class="font-mono font-bold text-white" id="rabWallCost">Rp 32.000.000</span>
+        </div>
+        <div class="flex justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <span class="text-slate-300">3. Finishing Lantai & Cat:</span>
+          <span class="font-mono font-bold text-white" id="rabFinishingCost">Rp 18.500.000</span>
+        </div>
+        <div class="flex justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <span class="text-slate-300">4. Pengadaan Furnitur & MEP (<span id="rabFurnCount">5</span> unit):</span>
+          <span class="font-mono font-bold text-white" id="rabFurnitureCost">Rp 17.500.000</span>
+        </div>
+
+        <div class="pt-3 border-t border-emerald-500/30 flex justify-between items-center bg-emerald-950/20 p-3 rounded-xl border">
+          <div>
+            <span class="text-xs text-emerald-300 font-semibold uppercase">Total Estimasi RAB:</span>
+            <p class="text-[10px] text-slate-400">*Estimasi standar regional Indonesia</p>
+          </div>
+          <span class="text-base font-extrabold font-mono text-emerald-400" id="rabTotalCost">Rp 152.000.000</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeRABModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MAIN APPLICATION JAVASCRIPT ENGINE -->
+  <!-- ======================================================== -->
   <script>
     const API_BASE = window.location.origin;
 
@@ -468,24 +822,42 @@
     let scene, camera, renderer, controls;
     let roomGroup, furnitureGroup, lightingGroup, constructionGroup;
     let selectedObject = null;
-    let cameraMode = 'orbit'; // 'orbit', 'walk', 'top'
+    let cameraMode = 'orbit'; // 'orbit', 'walk'
+    let isBlueprintFullscreen = false;
 
-    // Scene State (Deterministic data)
+    // Direct Drag-and-Drop Variables in 3D
+    let isDragging3D = false;
+    let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let planeIntersect = new THREE.Vector3();
+    let dragOffset = new THREE.Vector3();
+
+    // 2D Interactive Dragging Variables
+    let isDragging2D = false;
+    let draggedObject2D = null;
+
+    // Measurement Tool Variables
+    let isMeasuring = false;
+    let measurePointA = null;
+    let measurePointB = null;
+
+    // Scene State
     let roomState = {
       name: "Ruang Tamu & Keluarga",
-      width: 5.0,
-      length: 4.0,
-      height: 3.0,
+      width: 6.0,
+      length: 5.0,
+      height: 3.2,
       wallMaterial: 'white',
       floorMaterial: 'parquet',
       showCutaway: true,
       showCeiling: false,
       showRoof: false,
       lighting: 'noon',
-      constructionStage: 5 // 1 to 5
+      constructionStage: 5
     };
 
-    let placedObjects = []; // [{ id, type, label, x, z, rotation, mesh }]
+    let placedObjects = []; // [{ id, type, label, x, z, y, rotation, mesh }]
 
     // Materials Palette (PBR Standard)
     const materials = {
@@ -500,24 +872,33 @@
       floorMarble: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.15, metalness: 0.2 }),
       floorConcrete: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85, metalness: 0.1 }),
       
-      sofaFabric: new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.9 }),
+      sofaFabric: new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.9 }),
+      armchairFabric: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.9 }),
       woodFurniture: new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.5 }),
+      woodLight: new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.6 }),
       metalBlack: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, metalness: 0.8 }),
+      metalSilver: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.2, metalness: 0.9 }),
       tvScreen: new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.1, metalness: 0.9 }),
       plantGreen: new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 }),
+      pineGreen: new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8 }),
       potWhite: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 }),
-      waterBlue: new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.8 }),
-      glass: new THREE.MeshStandardMaterial({ color: 0xbae6fd, roughness: 0.1, transparent: true, opacity: 0.45 })
+      waterBlue: new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.85 }),
+      glass: new THREE.MeshStandardMaterial({ color: 0xbae6fd, roughness: 0.1, transparent: true, opacity: 0.45 }),
+      yellowForklift: new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4, metalness: 0.3 }),
+      carRed: new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2, metalness: 0.7 }),
+      solarBlue: new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.2, metalness: 0.8 })
     };
 
-    // Initialize 3D Engine
+    // ========================================================
+    // INITIALIZE 3D ENGINE
+    // ========================================================
     function init3D() {
       const container = document.getElementById('threeCanvas');
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0b0f19);
 
-      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-      camera.position.set(6, 6, 8);
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 120);
+      camera.position.set(7, 7, 9);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -529,7 +910,7 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.maxPolarAngle = Math.PI / 2 + 0.05; // Prevent camera going under floor
+      controls.maxPolarAngle = Math.PI / 2 + 0.02;
 
       // Groups
       roomGroup = new THREE.Group();
@@ -543,52 +924,107 @@
       scene.add(constructionGroup);
 
       // Environment grid & ground plane
-      const groundGeo = new THREE.PlaneGeometry(50, 50);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x070b14, roughness: 0.9 });
+      const groundGeo = new THREE.PlaneGeometry(60, 60);
+      const groundMat = new THREE.MeshStandardMaterial({ color: 0x070b14, roughness: 0.95 });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -0.01;
       ground.receiveShadow = true;
       scene.add(ground);
 
-      const gridHelper = new THREE.GridHelper(30, 30, 0x1e293b, 0x0f172a);
+      const gridHelper = new THREE.GridHelper(40, 40, 0x1e293b, 0x0f172a);
       gridHelper.position.y = 0.001;
       scene.add(gridHelper);
 
-      // Raycaster for object clicking
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
+      // Setup Pointer & Drag Handlers for 3D Viewport
+      setup3DDragControls(container);
 
-      renderer.domElement.addEventListener('pointerdown', (e) => {
+      // Setup 2D Interactive Canvases
+      setup2DCanvasEvents();
+
+      // Window resize handler
+      window.addEventListener('resize', onWindowResize);
+
+      // Setup initial scene & load template
+      setupLighting();
+      buildRoom();
+      loadTemplate('minimalist-house');
+
+      // Start animation loop
+      animate();
+    }
+
+    // ========================================================
+    // 3D DIRECT DRAG & DROP CONTROLS
+    // ========================================================
+    function setup3DDragControls(container) {
+      container.addEventListener('pointerdown', (e) => {
         if (cameraMode === 'walk') return;
-        const rect = renderer.domElement.getBoundingClientRect();
+        const rect = container.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(furnitureGroup.children, true);
+
         if (intersects.length > 0) {
-          // Find root object
-          let obj = intersects[0].object;
-          while (obj.parent && obj.parent !== furnitureGroup) {
-            obj = obj.parent;
+          // Find root furniture object
+          let root = intersects[0].object;
+          while (root.parent && root.parent !== furnitureGroup) {
+            root = root.parent;
           }
-          selectObject(obj);
+          selectObject(root);
+
+          // Prepare direct dragging on floor plane
+          if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+            dragOffset.copy(planeIntersect).sub(root.position);
+            isDragging3D = true;
+            controls.enabled = false; // Disable orbit camera during drag
+          }
         } else {
-          deselectObject();
+          // Clicked outside furniture -> check if clicked on floor to deselect
+          if (!isDragging3D) {
+            deselectObject();
+          }
         }
       });
 
-      // Window resize handler
-      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging3D || !selectedObject) return;
 
-      // Setup initial scene
-      setupLighting();
-      buildRoom();
-      loadTemplate('minimalist-house');
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      // Animation Loop
-      animate();
+        raycaster.setFromCamera(mouse, camera);
+        if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+          const newPos = planeIntersect.sub(dragOffset);
+          // Snap & clamp within room / outdoor boundaries
+          const hw = roomState.width / 2 + 2.0;
+          const hl = roomState.length / 2 + 2.0;
+          selectedObject.position.x = Math.max(-hw, Math.min(hw, Math.round(newPos.x * 10) / 10));
+          selectedObject.position.z = Math.max(-hl, Math.min(hl, Math.round(newPos.z * 10) / 10));
+
+          // Update data object
+          const data = placedObjects.find(o => o.mesh === selectedObject);
+          if (data) {
+            data.x = selectedObject.position.x;
+            data.z = selectedObject.position.z;
+          }
+
+          updateInspectorUI();
+          updateFloatingBadge();
+          const box = scene.getObjectByName('highlightBox');
+          if (box) box.update();
+        }
+      });
+
+      window.addEventListener('pointerup', () => {
+        if (isDragging3D) {
+          isDragging3D = false;
+          controls.enabled = true; // Re-enable orbit camera
+        }
+      });
     }
 
     function animate() {
@@ -598,13 +1034,21 @@
       }
       renderer.render(scene, camera);
       draw2DFloorplan();
+      if (isBlueprintFullscreen) {
+        drawFullscreenCAD();
+      }
     }
 
     function onWindowResize() {
       const container = document.getElementById('threeCanvas');
+      if (!container) return;
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+
+      if (isBlueprintFullscreen) {
+        resizeCADCanvas();
+      }
     }
 
     // ========================================================
@@ -617,51 +1061,52 @@
         lightingGroup.remove(lightingGroup.children[0]);
       }
 
-      ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
       lightingGroup.add(ambientLight);
 
-      sunLight = new THREE.DirectionalLight(0xfff7ed, 1.2);
-      sunLight.position.set(10, 15, 10);
+      sunLight = new THREE.DirectionalLight(0xfff7ed, 1.3);
+      sunLight.position.set(12, 16, 12);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.width = 2048;
       sunLight.shadow.mapSize.height = 2048;
       sunLight.shadow.camera.near = 0.5;
-      sunLight.shadow.camera.far = 40;
-      sunLight.shadow.camera.left = -10;
-      sunLight.shadow.camera.right = 10;
-      sunLight.shadow.camera.top = 10;
-      sunLight.shadow.camera.bottom = -10;
+      sunLight.shadow.camera.far = 45;
+      sunLight.shadow.camera.left = -15;
+      sunLight.shadow.camera.right = 15;
+      sunLight.shadow.camera.top = 15;
+      sunLight.shadow.camera.bottom = -15;
       lightingGroup.add(sunLight);
 
-      interiorPointLight = new THREE.PointLight(0xffedd5, 0.8, 12);
+      interiorPointLight = new THREE.PointLight(0xffedd5, 0.8, 15);
       interiorPointLight.position.set(0, roomState.height - 0.3, 0);
       lightingGroup.add(interiorPointLight);
     }
 
     function setLightingPreset(preset) {
       roomState.lighting = preset;
+      document.getElementById('lightingSelect').value = preset;
       if (preset === 'noon') {
         scene.background.set(0x0b0f19);
         sunLight.color.set(0xffffff);
-        sunLight.intensity = 1.2;
-        sunLight.position.set(8, 14, 8);
-        ambientLight.intensity = 0.45;
+        sunLight.intensity = 1.3;
+        sunLight.position.set(10, 16, 10);
+        ambientLight.intensity = 0.5;
         ambientLight.color.set(0xffffff);
         interiorPointLight.intensity = 0.3;
       } else if (preset === 'morning') {
         scene.background.set(0x1a1a2e);
         sunLight.color.set(0xfed7aa);
         sunLight.intensity = 1.4;
-        sunLight.position.set(15, 6, 8);
-        ambientLight.intensity = 0.35;
+        sunLight.position.set(18, 7, 10);
+        ambientLight.intensity = 0.4;
         ambientLight.color.set(0xfde68a);
         interiorPointLight.intensity = 0.5;
       } else if (preset === 'sunset') {
         scene.background.set(0x27153b);
         sunLight.color.set(0xfb923c);
-        sunLight.intensity = 1.1;
-        sunLight.position.set(14, 4, -10);
-        ambientLight.intensity = 0.3;
+        sunLight.intensity = 1.2;
+        sunLight.position.set(16, 4, -12);
+        ambientLight.intensity = 0.35;
         ambientLight.color.set(0xf472b6);
         interiorPointLight.intensity = 0.7;
       } else if (preset === 'night') {
@@ -669,13 +1114,13 @@
         sunLight.intensity = 0.05;
         ambientLight.intensity = 0.15;
         ambientLight.color.set(0x38bdf8);
-        interiorPointLight.intensity = 1.6;
+        interiorPointLight.intensity = 1.7;
         interiorPointLight.color.set(0xfef08a);
       }
     }
 
     // ========================================================
-    // ROOM GEOMETRY BUILDER (Walls, Floor, Plafon, Atap)
+    // ROOM GEOMETRY BUILDER
     // ========================================================
     function buildRoom() {
       while (roomGroup.children.length > 0) {
@@ -685,7 +1130,7 @@
       const w = roomState.width;
       const l = roomState.length;
       const h = roomState.height;
-      const t = 0.15; // wall thickness
+      const t = 0.15;
 
       // 1. Floor
       const floorMat = roomState.floorMaterial === 'marble' ? materials.floorMarble :
@@ -727,7 +1172,7 @@
       rightWall.receiveShadow = true;
       roomGroup.add(rightWall);
 
-      // 5. Front Wall (Z+) - Only if cutaway is disabled
+      // 5. Front Wall (Z+) - only if cutaway is disabled
       if (!roomState.showCutaway) {
         const frontWallGeo = new THREE.BoxGeometry(w + t * 2, h, t);
         const frontWall = new THREE.Mesh(frontWallGeo, wallMat);
@@ -745,21 +1190,24 @@
         roomGroup.add(ceil);
       }
 
-      // 7. Pitched Exterior Roof (Optional)
+      // 7. Pitched Exterior Roof
       if (roomState.showRoof) {
-        const roofGeo = new THREE.ConeGeometry((Math.max(w, l) / 2) * 1.4, 1.8, 4);
+        const roofGeo = new THREE.ConeGeometry((Math.max(w, l) / 2) * 1.4, 2.0, 4);
         const roofMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.set(0, h + 0.9, 0);
+        roof.position.set(0, h + 1.0, 0);
         roof.rotation.y = Math.PI / 4;
         roof.castShadow = true;
         roomGroup.add(roof);
       }
 
-      // Update light position to match ceiling
+      // Update light height
       if (interiorPointLight) {
         interiorPointLight.position.y = h - 0.3;
       }
+
+      // Update Header Label
+      document.getElementById('headerRoomLabel').textContent = `${roomState.name} (${w.toFixed(1)}m × ${l.toFixed(1)}m)`;
     }
 
     function updateRoomDimensions() {
@@ -767,10 +1215,13 @@
       roomState.length = parseFloat(document.getElementById('sliderLength').value);
       roomState.height = parseFloat(document.getElementById('sliderHeight').value);
 
+      const area = roomState.width * roomState.length;
+      const volume = area * roomState.height;
+
       document.getElementById('labelWidth').textContent = roomState.width.toFixed(1) + ' m';
       document.getElementById('labelLength').textContent = roomState.length.toFixed(1) + ' m';
       document.getElementById('labelHeight').textContent = roomState.height.toFixed(1) + ' m';
-      document.getElementById('labelArea').textContent = (roomState.width * roomState.length).toFixed(1) + ' m²';
+      document.getElementById('labelArea').textContent = `${area.toFixed(1)} m² (${volume.toFixed(1)} m³)`;
 
       buildRoom();
     }
@@ -791,161 +1242,345 @@
     }
 
     function applyMaterial(target, matType) {
-      if (target === 'floor') {
-        roomState.floorMaterial = matType;
-      } else if (target === 'wall') {
-        roomState.wallMaterial = matType;
-      }
+      if (target === 'floor') roomState.floorMaterial = matType;
+      else if (target === 'wall') roomState.wallMaterial = matType;
       buildRoom();
     }
 
     // ========================================================
-    // PROCEDURAL 3D FURNITURE FACTORY
+    // PROCEDURAL 3D FURNITURE FACTORY (35+ ASSETS)
     // ========================================================
     function createProceduralMesh(type) {
       const g = new THREE.Group();
 
-      if (type === 'sofa') {
-        // Base seat cushion
-        const seat = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.45, 0.85), materials.sofaFabric);
-        seat.position.y = 0.25;
-        seat.castShadow = true;
-        g.add(seat);
-
-        // Backrest
-        const back = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 0.25), materials.sofaFabric);
-        back.position.set(0, 0.6, -0.32);
-        back.castShadow = true;
-        g.add(back);
-
-        // Armrests
-        const armL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.85), materials.sofaFabric);
-        armL.position.set(-1.0, 0.45, 0);
-        g.add(armL);
-        const armR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.85), materials.sofaFabric);
-        armR.position.set(1.0, 0.45, 0);
-        g.add(armR);
-
-      } else if (type === 'table') {
-        // Table top
-        const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.7), materials.woodFurniture);
-        top.position.y = 0.45;
-        top.castShadow = true;
-        g.add(top);
-
-        // 4 Legs
-        for (let x of [-0.5, 0.5]) {
-          for (let z of [-0.28, 0.28]) {
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45), materials.metalBlack);
-            leg.position.set(x, 0.225, z);
-            g.add(leg);
+      switch (type) {
+        // --- 🛋️ RUANG TAMU ---
+        case 'sofa': {
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.45, 0.85), materials.sofaFabric);
+          seat.position.y = 0.25; seat.castShadow = true; g.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 0.25), materials.sofaFabric);
+          back.position.set(0, 0.6, -0.32); back.castShadow = true; g.add(back);
+          const armL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.85), materials.sofaFabric);
+          armL.position.set(-1.0, 0.45, 0); g.add(armL);
+          const armR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.85), materials.sofaFabric);
+          armR.position.set(1.0, 0.45, 0); g.add(armR);
+          break;
+        }
+        case 'sofa_l': {
+          const mainSeat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.9), materials.sofaFabric);
+          mainSeat.position.set(0, 0.25, 0); mainSeat.castShadow = true; g.add(mainSeat);
+          const lExtension = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.45, 1.4), materials.sofaFabric);
+          lExtension.position.set(0.75, 0.25, 1.05); lExtension.castShadow = true; g.add(lExtension);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.65, 0.25), materials.sofaFabric);
+          back.position.set(0, 0.6, -0.35); g.add(back);
+          break;
+        }
+        case 'armchair': {
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.45, 0.85), materials.armchairFabric);
+          seat.position.y = 0.25; seat.castShadow = true; g.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.2), materials.armchairFabric);
+          back.position.set(0, 0.6, -0.32); g.add(back);
+          break;
+        }
+        case 'table': {
+          const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.7), materials.woodLight);
+          top.position.y = 0.45; top.castShadow = true; g.add(top);
+          for (let x of [-0.5, 0.5]) {
+            for (let z of [-0.28, 0.28]) {
+              const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45), materials.metalBlack);
+              leg.position.set(x, 0.225, z); g.add(leg);
+            }
           }
+          break;
+        }
+        case 'tv': {
+          const consoleTable = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.45, 0.45), materials.woodFurniture);
+          consoleTable.position.y = 0.225; consoleTable.castShadow = true; g.add(consoleTable);
+          const screen = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.05), materials.tvScreen);
+          screen.position.set(0, 0.95, 0); screen.castShadow = true; g.add(screen);
+          break;
+        }
+        case 'bookshelf': {
+          const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.0, 0.35), materials.woodFurniture);
+          shelf.position.y = 1.0; shelf.castShadow = true; g.add(shelf);
+          break;
+        }
+        case 'floor_lamp': {
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.8), materials.metalBlack);
+          pole.position.y = 0.9; g.add(pole);
+          const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.4, 16), materials.whiteWall);
+          shade.position.y = 1.8; g.add(shade);
+          break;
+        }
+        case 'rug': {
+          const carpet = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.02, 1.8), materials.charcoalWall);
+          carpet.position.y = 0.01; g.add(carpet);
+          break;
         }
 
-      } else if (type === 'bed') {
-        // Bed base
-        const base = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.35, 2.1), materials.woodFurniture);
-        base.position.y = 0.2;
-        base.castShadow = true;
-        g.add(base);
+        // --- 🛏️ KAMAR TIDUR ---
+        case 'bed': {
+          const base = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.35, 2.2), materials.woodFurniture);
+          base.position.y = 0.2; base.castShadow = true; g.add(base);
+          const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.25, 2.1), materials.whiteWall);
+          mattress.position.y = 0.45; g.add(mattress);
+          const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.1, 0.15), materials.woodFurniture);
+          headboard.position.set(0, 0.65, -1.05); g.add(headboard);
+          break;
+        }
+        case 'bed_single': {
+          const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 2.0), materials.woodLight);
+          base.position.y = 0.2; g.add(base);
+          const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.22, 1.9), materials.whiteWall);
+          mattress.position.y = 0.45; g.add(mattress);
+          break;
+        }
+        case 'wardrobe': {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 0.6), materials.woodFurniture);
+          body.position.y = 1.1; body.castShadow = true; g.add(body);
+          break;
+        }
+        case 'dressing_table': {
+          const table = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.75, 0.45), materials.woodFurniture);
+          table.position.y = 0.375; g.add(table);
+          const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.04), materials.glass);
+          mirror.position.set(0, 1.15, -0.2); g.add(mirror);
+          break;
+        }
+        case 'nightstand': {
+          const stand = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.4), materials.woodFurniture);
+          stand.position.y = 0.25; g.add(stand);
+          break;
+        }
 
-        // Mattress
-        const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 2.0), materials.whiteWall);
-        mattress.position.y = 0.45;
-        g.add(mattress);
+        // --- 🍽️ DAPUR & MAKAN ---
+        case 'dining_table': {
+          const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.9), materials.woodFurniture);
+          top.position.y = 0.75; top.castShadow = true; g.add(top);
+          for (let x of [-0.8, 0.8]) {
+            for (let z of [-0.35, 0.35]) {
+              const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.06), materials.metalBlack);
+              leg.position.set(x, 0.375, z); g.add(leg);
+            }
+          }
+          break;
+        }
+        case 'kitchen_island': {
+          const island = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 1.0), materials.floorMarble);
+          island.position.y = 0.45; island.castShadow = true; g.add(island);
+          break;
+        }
+        case 'kitchen_cabinet': {
+          const cab = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.85, 0.6), materials.charcoalWall);
+          cab.position.y = 0.425; cab.castShadow = true; g.add(cab);
+          break;
+        }
+        case 'refrigerator': {
+          const fridge = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.85, 0.75), materials.metalSilver);
+          fridge.position.y = 0.925; fridge.castShadow = true; g.add(fridge);
+          break;
+        }
 
-        // Headboard
-        const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.1, 0.15), materials.woodFurniture);
-        headboard.position.set(0, 0.65, -1.0);
-        headboard.castShadow = true;
-        g.add(headboard);
+        // --- 🚿 KAMAR MANDI ---
+        case 'bathtub': {
+          const tub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.8), materials.potWhite);
+          tub.position.y = 0.3; tub.castShadow = true; g.add(tub);
+          break;
+        }
+        case 'shower_box': {
+          const frame = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.1, 1.0), materials.glass);
+          frame.position.y = 1.05; g.add(frame);
+          break;
+        }
+        case 'toilet': {
+          const base = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.65), materials.potWhite);
+          base.position.y = 0.225; g.add(base);
+          const cistern = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.2), materials.potWhite);
+          cistern.position.set(0, 0.6, -0.22); g.add(cistern);
+          break;
+        }
+        case 'sink_vanity': {
+          const cab = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.5), materials.woodFurniture);
+          cab.position.y = 0.4; g.add(cab);
+          const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.03), materials.glass);
+          mirror.position.set(0, 1.3, -0.2); g.add(mirror);
+          break;
+        }
 
-        // Pillows
-        const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.1, 0.4), materials.sofaFabric);
-        pillow1.position.set(-0.45, 0.62, -0.7);
-        g.add(pillow1);
-        const pillow2 = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.1, 0.4), materials.sofaFabric);
-        pillow2.position.set(0.45, 0.62, -0.7);
-        g.add(pillow2);
+        // --- 💼 PERKANTORAN ---
+        case 'desk': {
+          const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.75), materials.woodLight);
+          top.position.y = 0.75; top.castShadow = true; g.add(top);
+          const legL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.7), materials.metalBlack);
+          legL.position.set(-0.7, 0.375, 0); g.add(legL);
+          const legR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.7), materials.metalBlack);
+          legR.position.set(0.7, 0.375, 0); g.add(legR);
+          break;
+        }
+        case 'office_chair': {
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), materials.metalBlack);
+          seat.position.y = 0.48; g.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.55, 0.06), materials.metalBlack);
+          back.position.set(0, 0.78, -0.22); g.add(back);
+          const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45), materials.metalSilver);
+          stem.position.y = 0.225; g.add(stem);
+          break;
+        }
+        case 'meeting_table': {
+          const top = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.08, 1.2), materials.woodFurniture);
+          top.position.y = 0.75; top.castShadow = true; g.add(top);
+          for (let x of [-1.1, 1.1]) {
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.75), materials.metalBlack);
+            pillar.position.set(x, 0.375, 0); g.add(pillar);
+          }
+          break;
+        }
+        case 'whiteboard': {
+          const board = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 0.04), materials.whiteWall);
+          board.position.y = 1.4; g.add(board);
+          const standL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.8, 0.4), materials.metalSilver);
+          standL.position.set(-1.0, 0.9, 0); g.add(standL);
+          const standR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.8, 0.4), materials.metalSilver);
+          standR.position.set(1.0, 0.9, 0); g.add(standR);
+          break;
+        }
+        case 'server_rack': {
+          const rack = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.0, 0.9), materials.metalBlack);
+          rack.position.y = 1.0; rack.castShadow = true; g.add(rack);
+          break;
+        }
+        case 'water_dispenser': {
+          const unit = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.0, 0.35), materials.potWhite);
+          unit.position.y = 0.5; g.add(unit);
+          const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.4), materials.waterBlue);
+          bottle.position.y = 1.15; g.add(bottle);
+          break;
+        }
 
-      } else if (type === 'wardrobe') {
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.2, 0.6), materials.woodFurniture);
-        body.position.y = 1.1;
-        body.castShadow = true;
-        g.add(body);
+        // --- 🛍️ MALL & RETAIL ---
+        case 'shelf_gondola': {
+          const gondola = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.6, 0.6), materials.whiteWall);
+          gondola.position.y = 0.8; gondola.castShadow = true; g.add(gondola);
+          break;
+        }
+        case 'cashier_counter': {
+          const counter = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, 0.7), materials.woodLight);
+          counter.position.y = 0.5; counter.castShadow = true; g.add(counter);
+          const screen = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.3, 0.04), materials.metalBlack);
+          screen.position.set(0.3, 1.15, 0); g.add(screen);
+          break;
+        }
+        case 'mannequin': {
+          const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.12, 1.6), materials.potWhite);
+          body.position.y = 0.9; g.add(body);
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), materials.potWhite);
+          head.position.y = 1.75; g.add(head);
+          break;
+        }
+        case 'display_case': {
+          const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 0.6), materials.charcoalWall);
+          base.position.y = 0.25; g.add(base);
+          const glassTop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.6), materials.glass);
+          glassTop.position.y = 0.8; g.add(glassTop);
+          break;
+        }
 
-      } else if (type === 'desk') {
-        const top = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.65), materials.woodFurniture);
-        top.position.y = 0.75;
-        top.castShadow = true;
-        g.add(top);
+        // --- 🏭 INDUSTRI & GUDANG ---
+        case 'pallet_stack': {
+          for (let i = 0; i < 3; i++) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 1.0), materials.woodLight);
+            p.position.y = 0.075 + i * 0.18; p.castShadow = true; g.add(p);
+          }
+          break;
+        }
+        case 'forklift': {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 1.8), materials.yellowForklift);
+          body.position.y = 0.55; body.castShadow = true; g.add(body);
+          const mast = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.1), materials.metalBlack);
+          mast.position.set(0, 1.0, 0.95); g.add(mast);
+          break;
+        }
+        case 'storage_tank': {
+          const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.4, 20), materials.metalSilver);
+          tank.position.y = 1.2; tank.castShadow = true; g.add(tank);
+          break;
+        }
+        case 'hvac_unit': {
+          const hvac = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 1.2), materials.concreteWall);
+          hvac.position.y = 0.6; hvac.castShadow = true; g.add(hvac);
+          break;
+        }
 
-        const legL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.6), materials.metalBlack);
-        legL.position.set(-0.6, 0.375, 0);
-        g.add(legL);
-        const legR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.6), materials.metalBlack);
-        legR.position.set(0.6, 0.375, 0);
-        g.add(legR);
-
-      } else if (type === 'tv') {
-        // Stand console
-        const consoleTable = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.45, 0.45), materials.woodFurniture);
-        consoleTable.position.y = 0.225;
-        consoleTable.castShadow = true;
-        g.add(consoleTable);
-
-        // Screen
-        const screen = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 0.05), materials.tvScreen);
-        screen.position.set(0, 0.9, 0);
-        screen.castShadow = true;
-        g.add(screen);
-
-      } else if (type === 'plant') {
-        // Pot
-        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.45, 16), materials.potWhite);
-        pot.position.y = 0.225;
-        pot.castShadow = true;
-        g.add(pot);
-
-        // Foliage
-        const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35, 1), materials.plantGreen);
-        leaves.position.y = 0.65;
-        leaves.castShadow = true;
-        g.add(leaves);
-
-      } else if (type === 'bathtub') {
-        const tub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.8), materials.potWhite);
-        tub.position.y = 0.3;
-        tub.castShadow = true;
-        g.add(tub);
-
-      } else if (type === 'pool') {
-        // Pool basin
-        const basin = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.4, 2.5), materials.potWhite);
-        basin.position.y = 0.2;
-        g.add(basin);
-
-        const water = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 2.3), materials.waterBlue);
-        water.rotation.x = -Math.PI / 2;
-        water.position.y = 0.35;
-        g.add(water);
-
-      } else if (type === 'tree') {
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 2.5), materials.woodFurniture);
-        trunk.position.y = 1.25;
-        trunk.castShadow = true;
-        g.add(trunk);
-
-        const crown = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.2, 8), materials.plantGreen);
-        crown.position.y = 2.8;
-        crown.castShadow = true;
-        g.add(crown);
+        // --- 🌴 EKSTERIOR & OUTDOOR ---
+        case 'pool': {
+          const basin = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.4, 2.6), materials.potWhite);
+          basin.position.y = 0.2; g.add(basin);
+          const water = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 2.4), materials.waterBlue);
+          water.rotation.x = -Math.PI / 2; water.position.y = 0.35; g.add(water);
+          break;
+        }
+        case 'tree': {
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 2.6), materials.woodFurniture);
+          trunk.position.y = 1.3; trunk.castShadow = true; g.add(trunk);
+          const crown = new THREE.Mesh(new THREE.ConeGeometry(1.3, 2.4, 8), materials.plantGreen);
+          crown.position.y = 3.0; crown.castShadow = true; g.add(crown);
+          break;
+        }
+        case 'pine_tree': {
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 1.5), materials.woodFurniture);
+          trunk.position.y = 0.75; g.add(trunk);
+          for (let i = 0; i < 3; i++) {
+            const cone = new THREE.Mesh(new THREE.ConeGeometry(1.2 - i * 0.25, 1.2, 8), materials.pineGreen);
+            cone.position.y = 1.5 + i * 0.8; cone.castShadow = true; g.add(cone);
+          }
+          break;
+        }
+        case 'park_bench': {
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.06, 0.45), materials.woodLight);
+          seat.position.y = 0.45; g.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 0.05), materials.woodLight);
+          back.position.set(0, 0.65, -0.2); g.add(back);
+          break;
+        }
+        case 'street_lamp': {
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 3.2), materials.metalBlack);
+          pole.position.y = 1.6; g.add(pole);
+          const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.35), materials.whiteWall);
+          lantern.position.y = 3.3; g.add(lantern);
+          break;
+        }
+        case 'car_sedan': {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 3.8), materials.carRed);
+          body.position.y = 0.45; body.castShadow = true; g.add(body);
+          const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.55, 2.0), materials.metalBlack);
+          cabin.position.set(0, 0.95, -0.2); g.add(cabin);
+          break;
+        }
+        case 'solar_panel': {
+          const panel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 2.2), materials.solarBlue);
+          panel.rotation.x = 0.3; panel.position.y = 0.6; g.add(panel);
+          break;
+        }
+        case 'fence': {
+          const f = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.0, 0.08), materials.woodLight);
+          f.position.y = 0.5; g.add(f);
+          break;
+        }
+        case 'plant':
+        default: {
+          const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.45, 16), materials.potWhite);
+          pot.position.y = 0.225; pot.castShadow = true; g.add(pot);
+          const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35, 1), materials.plantGreen);
+          foliage.position.y = 0.65; foliage.castShadow = true; g.add(foliage);
+          break;
+        }
       }
 
       g.userData.type = type;
       return g;
     }
 
+    // Spawn furniture item into the scene
     function spawnFurniture(type, x = 0, z = 0, rotDeg = 0) {
       const mesh = createProceduralMesh(type);
       mesh.position.set(x, 0, z);
@@ -955,8 +1590,10 @@
       const objData = {
         id: 'obj_' + Math.random().toString(36).substr(2, 7),
         type: type,
+        label: formatFurnitureLabel(type),
         x: x,
         z: z,
+        y: 0,
         rotation: rotDeg,
         mesh: mesh
       };
@@ -964,18 +1601,32 @@
       selectObject(mesh);
     }
 
+    function formatFurnitureLabel(type) {
+      return type.replace(/_/g, ' ').toUpperCase();
+    }
+
+    // ========================================================
+    // SELECTION, MOVEMENT & REPOSITION CONTROLS
+    // ========================================================
     function selectObject(mesh) {
       deselectObject();
       selectedObject = mesh;
 
       // Add visual highlight outline
-      const bbox = new THREE.BoxHelper(mesh, 0x3b82f6);
+      const bbox = new THREE.BoxHelper(mesh, 0x38bdf8);
       bbox.name = 'highlightBox';
       scene.add(bbox);
 
+      // Show inspector & coordinate sliders
       const inspector = document.getElementById('objectInspector');
       inspector.classList.remove('hidden');
-      document.getElementById('inspectorName').innerHTML = `<i data-lucide="box" class="w-3.5 h-3.5 text-blue-400"></i> ${mesh.userData.type.toUpperCase()}`;
+      document.getElementById('inspectorName').innerHTML = `
+        <i data-lucide="box" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+        <span>${formatFurnitureLabel(mesh.userData.type || 'OBJEK')}</span>
+      `;
+
+      updateInspectorUI();
+      updateFloatingBadge();
       lucide.createIcons();
     }
 
@@ -984,13 +1635,99 @@
       const prevBox = scene.getObjectByName('highlightBox');
       if (prevBox) scene.remove(prevBox);
       document.getElementById('objectInspector').classList.add('hidden');
+      document.getElementById('floatingBadge').classList.add('hidden');
+    }
+
+    function updateInspectorUI() {
+      if (!selectedObject) return;
+      const x = selectedObject.position.x;
+      const z = selectedObject.position.z;
+
+      document.getElementById('sliderObjX').value = x;
+      document.getElementById('sliderObjZ').value = z;
+      document.getElementById('labelObjX').textContent = x.toFixed(1) + ' m';
+      document.getElementById('labelObjZ').textContent = z.toFixed(1) + ' m';
+    }
+
+    function updateFloatingBadge() {
+      const badge = document.getElementById('floatingBadge');
+      if (!selectedObject) {
+        badge.classList.add('hidden');
+        return;
+      }
+      badge.classList.remove('hidden');
+      badge.textContent = `X: ${selectedObject.position.x.toFixed(1)}m | Z: ${selectedObject.position.z.toFixed(1)}m`;
+
+      // Project 3D coordinate to screen space
+      const v = new THREE.Vector3();
+      selectedObject.getWorldPosition(v);
+      v.y += 1.2;
+      v.project(camera);
+
+      const container = document.getElementById('viewportContainer');
+      const sx = (v.x * 0.5 + 0.5) * container.clientWidth;
+      const sy = (-(v.y * 0.5) + 0.5) * container.clientHeight;
+
+      badge.style.left = `${sx}px`;
+      badge.style.top = `${sy}px`;
+    }
+
+    function onInspectorPositionChange() {
+      if (!selectedObject) return;
+      const x = parseFloat(document.getElementById('sliderObjX').value);
+      const z = parseFloat(document.getElementById('sliderObjZ').value);
+
+      selectedObject.position.x = x;
+      selectedObject.position.z = z;
+
+      const data = placedObjects.find(o => o.mesh === selectedObject);
+      if (data) {
+        data.x = x;
+        data.z = z;
+      }
+
+      document.getElementById('labelObjX').textContent = x.toFixed(1) + ' m';
+      document.getElementById('labelObjZ').textContent = z.toFixed(1) + ' m';
+
+      const box = scene.getObjectByName('highlightBox');
+      if (box) box.update();
+      updateFloatingBadge();
+    }
+
+    function nudgeSelectedObject(dx, dz) {
+      if (!selectedObject) return;
+      selectedObject.position.x = Math.round((selectedObject.position.x + dx) * 10) / 10;
+      selectedObject.position.z = Math.round((selectedObject.position.z + dz) * 10) / 10;
+
+      const data = placedObjects.find(o => o.mesh === selectedObject);
+      if (data) {
+        data.x = selectedObject.position.x;
+        data.z = selectedObject.position.z;
+      }
+
+      updateInspectorUI();
+      updateFloatingBadge();
+      const box = scene.getObjectByName('highlightBox');
+      if (box) box.update();
     }
 
     function rotateSelectedObject(deltaDeg) {
       if (!selectedObject) return;
       selectedObject.rotation.y += (deltaDeg * Math.PI) / 180;
+      const data = placedObjects.find(o => o.mesh === selectedObject);
+      if (data) {
+        data.rotation = Math.round((selectedObject.rotation.y * 180) / Math.PI);
+      }
       const box = scene.getObjectByName('highlightBox');
       if (box) box.update();
+    }
+
+    function duplicateSelectedObject() {
+      if (!selectedObject) return;
+      const type = selectedObject.userData.type;
+      const newX = selectedObject.position.x + 0.6;
+      const newZ = selectedObject.position.z + 0.6;
+      spawnFurniture(type, newX, newZ, (selectedObject.rotation.y * 180) / Math.PI);
     }
 
     function deleteSelectedObject() {
@@ -1001,8 +1738,75 @@
     }
 
     // ========================================================
-    // 2D FLOORPLAN SYNC & DRAWING
+    // 2D MINI FLOORPLAN & INTERACTIVE DRAG-TO-MOVE
     // ========================================================
+    function setup2DCanvasEvents() {
+      const cvs = document.getElementById('floorplan2DCanvas');
+      if (!cvs) return;
+
+      cvs.addEventListener('pointerdown', (e) => {
+        const rect = cvs.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+        const scale = 18;
+
+        // Check if clicked near any placed furniture icon
+        let found = null;
+        for (let obj of placedObjects) {
+          const fx = cx + obj.mesh.position.x * scale;
+          const fy = cy + obj.mesh.position.z * scale;
+          const dist = Math.hypot(mouseX - fx, mouseY - fy);
+          if (dist < 14) {
+            found = obj;
+            break;
+          }
+        }
+
+        if (found) {
+          selectObject(found.mesh);
+          isDragging2D = true;
+          draggedObject2D = found.mesh;
+        }
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging2D || !draggedObject2D) return;
+        const cvs = document.getElementById('floorplan2DCanvas');
+        const rect = cvs.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+        const scale = 18;
+
+        const worldX = Math.round(((mouseX - cx) / scale) * 10) / 10;
+        const worldZ = Math.round(((mouseY - cy) / scale) * 10) / 10;
+
+        draggedObject2D.position.x = worldX;
+        draggedObject2D.position.z = worldZ;
+
+        const data = placedObjects.find(o => o.mesh === draggedObject2D);
+        if (data) {
+          data.x = worldX;
+          data.z = worldZ;
+        }
+
+        updateInspectorUI();
+        updateFloatingBadge();
+        const box = scene.getObjectByName('highlightBox');
+        if (box) box.update();
+      });
+
+      window.addEventListener('pointerup', () => {
+        isDragging2D = false;
+        draggedObject2D = null;
+      });
+    }
+
     function draw2DFloorplan() {
       const cvs = document.getElementById('floorplan2DCanvas');
       if (!cvs) return;
@@ -1026,7 +1830,7 @@
       // Center & scale
       const cx = w / 2;
       const cy = h / 2;
-      const scale = 18; // pixels per meter
+      const scale = 18;
 
       const rw = roomState.width * scale;
       const rl = roomState.length * scale;
@@ -1036,7 +1840,7 @@
       ctx.fillRect(cx - rw / 2, cy - rl / 2, rw, rl);
 
       ctx.strokeStyle = '#60a5fa';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.strokeRect(cx - rw / 2, cy - rl / 2, rw, rl);
 
       // Dimensions labels
@@ -1044,36 +1848,446 @@
       ctx.font = '10px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`${roomState.width.toFixed(1)}m`, cx, cy - rl / 2 - 4);
-      ctx.save();
-      ctx.translate(cx - rw / 2 - 8, cy);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(`${roomState.length.toFixed(1)}m`, 0, 0);
-      ctx.restore();
 
-      // Furniture dots / icons
+      // Furniture dots & labels
       furnitureGroup.children.forEach(f => {
         const fx = cx + f.position.x * scale;
         const fy = cy + f.position.z * scale;
 
-        ctx.fillStyle = (f === selectedObject) ? '#3b82f6' : '#f59e0b';
+        const isSel = (f === selectedObject);
+        ctx.fillStyle = isSel ? '#38bdf8' : '#f59e0b';
         ctx.beginPath();
-        ctx.arc(fx, fy, 5, 0, Math.PI * 2);
+        ctx.arc(fx, fy, isSel ? 7 : 5, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#ffffff';
+        if (isSel) {
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = isSel ? '#ffffff' : '#cbd5e1';
         ctx.font = '8px sans-serif';
         ctx.fillText(f.userData.type || '', fx, fy + 12);
       });
     }
 
     // ========================================================
-    // CAMERA CONTROLS: ORBIT, WALKTHROUGH, TOP-DOWN
+    // FULLSCREEN 2D BLUEPRINT CAD DRAFTING STUDIO
     // ========================================================
+    function toggleBlueprintMode() {
+      const modal = document.getElementById('blueprintCADModal');
+      isBlueprintFullscreen = !isBlueprintFullscreen;
+      if (isBlueprintFullscreen) {
+        modal.classList.remove('hidden');
+        resizeCADCanvas();
+        updateCADTitleBlock();
+        setupCADCanvasDrag();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function resizeCADCanvas() {
+      const cvs = document.getElementById('cadFullscreenCanvas');
+      const container = document.getElementById('cadCanvasContainer');
+      if (!cvs || !container) return;
+      cvs.width = container.clientWidth - 40;
+      cvs.height = container.clientHeight - 40;
+      drawFullscreenCAD();
+    }
+
+    function updateCADTitleBlock() {
+      document.getElementById('cadRoomName').textContent = roomState.name;
+      document.getElementById('cadRoomDim').textContent = `${roomState.width.toFixed(1)}m × ${roomState.length.toFixed(1)}m (T: ${roomState.height.toFixed(1)}m)`;
+      document.getElementById('cadRoomArea').textContent = (roomState.width * roomState.length).toFixed(2) + ' m²';
+      document.getElementById('cadFurnCount').textContent = placedObjects.length + ' Unit';
+    }
+
+    function drawFullscreenCAD() {
+      const cvs = document.getElementById('cadFullscreenCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width;
+      const h = cvs.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Scale & origin
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = 38; // 38 pixels per meter in CAD mode
+
+      const rw = roomState.width * scale;
+      const rl = roomState.length * scale;
+      const wallThick = 0.15 * scale;
+
+      // 1. Blueprint Grid & Coordinates
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.lineWidth = 1;
+      const gridStep = scale * 0.5; // Every 0.5 meter
+      for (let x = cx % gridStep; x < w; x += gridStep) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = cy % gridStep; y < h; y += gridStep) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // 2. Room Outer & Inner Walls (Double-lines DIN standard)
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.06)';
+      ctx.fillRect(cx - rw / 2, cy - rl / 2, rw, rl);
+
+      // Outer wall
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(cx - rw / 2 - wallThick, cy - rl / 2 - wallThick, rw + wallThick * 2, rl + wallThick * 2);
+
+      // Inner wall
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - rw / 2, cy - rl / 2, rw, rl);
+
+      // 3. Technical Dimension Callouts with Arrows
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+
+      // Width dimension (Top)
+      const topY = cy - rl / 2 - wallThick - 25;
+      ctx.beginPath();
+      ctx.moveTo(cx - rw / 2, topY);
+      ctx.lineTo(cx + rw / 2, topY);
+      ctx.stroke();
+      drawCADArrow(ctx, cx - rw / 2, topY, 'left');
+      drawCADArrow(ctx, cx + rw / 2, topY, 'right');
+      ctx.fillText(`${roomState.width.toFixed(2)} m`, cx, topY - 6);
+
+      // Length dimension (Left)
+      const leftX = cx - rw / 2 - wallThick - 25;
+      ctx.beginPath();
+      ctx.moveTo(leftX, cy - rl / 2);
+      ctx.lineTo(leftX, cy + rl / 2);
+      ctx.stroke();
+      drawCADArrow(ctx, leftX, cy - rl / 2, 'up');
+      drawCADArrow(ctx, leftX, cy + rl / 2, 'down');
+
+      ctx.save();
+      ctx.translate(leftX - 8, cy);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(`${roomState.length.toFixed(2)} m`, 0, 0);
+      ctx.restore();
+
+      // 4. North Arrow Compass
+      const compassX = 45;
+      const compassY = 55;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(compassX, compassY, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.moveTo(compassX, compassY - 18);
+      ctx.lineTo(compassX - 6, compassY + 5);
+      ctx.lineTo(compassX + 6, compassY + 5);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('U', compassX, compassY - 22);
+
+      // 5. Draw Furniture CAD Symbols
+      furnitureGroup.children.forEach(f => {
+        const fx = cx + f.position.x * scale;
+        const fy = cy + f.position.z * scale;
+        const isSel = (f === selectedObject);
+
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.rotate(f.rotation.y);
+
+        // Draw architectural CAD block based on type
+        drawArchitecturalSymbol(ctx, f.userData.type, isSel);
+
+        ctx.restore();
+      });
+
+      // 6. Draw Measurement line if active
+      if (isMeasuring && measurePointA && measurePointB) {
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(measurePointA.x, measurePointA.y);
+        ctx.lineTo(measurePointB.x, measurePointB.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const distPx = Math.hypot(measurePointB.x - measurePointA.x, measurePointB.y - measurePointA.y);
+        const distM = (distPx / scale).toFixed(2);
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(`${distM} m`, (measurePointA.x + measurePointB.x) / 2, (measurePointA.y + measurePointB.y) / 2 - 8);
+      }
+    }
+
+    function drawCADArrow(ctx, x, y, dir) {
+      ctx.beginPath();
+      if (dir === 'left') {
+        ctx.moveTo(x, y); ctx.lineTo(x + 8, y - 4); ctx.lineTo(x + 8, y + 4);
+      } else if (dir === 'right') {
+        ctx.moveTo(x, y); ctx.lineTo(x - 8, y - 4); ctx.lineTo(x - 8, y + 4);
+      } else if (dir === 'up') {
+        ctx.moveTo(x, y); ctx.lineTo(x - 4, y + 8); ctx.lineTo(x + 4, y + 8);
+      } else if (dir === 'down') {
+        ctx.moveTo(x, y); ctx.lineTo(x - 4, y - 8); ctx.lineTo(x + 4, y - 8);
+      }
+      ctx.fill();
+    }
+
+    function drawArchitecturalSymbol(ctx, type, isSelected) {
+      ctx.strokeStyle = isSelected ? '#38bdf8' : '#93c5fd';
+      ctx.fillStyle = isSelected ? 'rgba(56, 189, 248, 0.3)' : 'rgba(147, 197, 253, 0.15)';
+      ctx.lineWidth = isSelected ? 2 : 1.2;
+
+      // Dimension bounding block approximations
+      let bw = 35, bh = 25;
+      if (type === 'sofa') { bw = 55; bh = 28; }
+      else if (type === 'sofa_l') { bw = 65; bh = 45; }
+      else if (type === 'bed') { bw = 55; bh = 60; }
+      else if (type === 'bed_single') { bw = 32; bh = 55; }
+      else if (type === 'desk') { bw = 48; bh = 25; }
+      else if (type === 'meeting_table') { bw = 85; bh = 38; }
+      else if (type === 'pool') { bw = 110; bh = 70; }
+      else if (type === 'forklift') { bw = 40; bh = 55; }
+      else if (type === 'car_sedan') { bw = 50; bh = 95; }
+      else if (type === 'tree' || type === 'pine_tree') { bw = 35; bh = 35; }
+
+      // Outer outline
+      ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
+      ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+
+      // Inner details
+      ctx.fillStyle = isSelected ? '#ffffff' : '#e0f2fe';
+      ctx.font = '8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(type || 'item', 0, 3);
+    }
+
+    // CAD Canvas Interactive Dragging & Measurement Tool
+    function setupCADCanvasDrag() {
+      const cvs = document.getElementById('cadFullscreenCanvas');
+      if (!cvs) return;
+
+      cvs.onpointerdown = (e) => {
+        const rect = cvs.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        if (isMeasuring) {
+          if (!measurePointA) {
+            measurePointA = { x: mouseX, y: mouseY };
+          } else {
+            measurePointB = { x: mouseX, y: mouseY };
+            const distM = (Math.hypot(measurePointB.x - measurePointA.x, measurePointB.y - measurePointA.y) / 38).toFixed(2);
+            document.getElementById('measureResultText').textContent = `Jarak Terukur: ${distM} m`;
+            document.getElementById('measureResultBadge').classList.remove('hidden');
+            measurePointA = null;
+          }
+          drawFullscreenCAD();
+          return;
+        }
+
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+        const scale = 38;
+
+        // Check if hit furniture
+        let clicked = null;
+        for (let obj of placedObjects) {
+          const fx = cx + obj.mesh.position.x * scale;
+          const fy = cy + obj.mesh.position.z * scale;
+          if (Math.hypot(mouseX - fx, mouseY - fy) < 25) {
+            clicked = obj;
+            break;
+          }
+        }
+
+        if (clicked) {
+          selectObject(clicked.mesh);
+          isDragging2D = true;
+          draggedObject2D = clicked.mesh;
+        }
+      };
+
+      cvs.onpointermove = (e) => {
+        if (isMeasuring && measurePointA) {
+          const rect = cvs.getBoundingClientRect();
+          measurePointB = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+          drawFullscreenCAD();
+          return;
+        }
+
+        if (!isDragging2D || !draggedObject2D) return;
+        const rect = cvs.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+        const scale = 38;
+
+        const worldX = Math.round(((mouseX - cx) / scale) * 10) / 10;
+        const worldZ = Math.round(((mouseY - cy) / scale) * 10) / 10;
+
+        draggedObject2D.position.x = worldX;
+        draggedObject2D.position.z = worldZ;
+
+        const data = placedObjects.find(o => o.mesh === draggedObject2D);
+        if (data) {
+          data.x = worldX;
+          data.z = worldZ;
+        }
+
+        updateInspectorUI();
+        updateFloatingBadge();
+        drawFullscreenCAD();
+      };
+
+      cvs.onpointerup = () => {
+        isDragging2D = false;
+        draggedObject2D = null;
+      };
+    }
+
+    function toggleMeasureTool() {
+      isMeasuring = !isMeasuring;
+      measurePointA = null;
+      measurePointB = null;
+      const btn = document.getElementById('btnMeasureTool');
+      const text = document.getElementById('measureBtnText');
+      if (isMeasuring) {
+        btn.classList.add('bg-cyan-600', 'text-white');
+        text.textContent = 'Klik 2 Titik Pengukuran';
+      } else {
+        btn.classList.remove('bg-cyan-600', 'text-white');
+        text.textContent = 'Ukur Jarak (Ruler)';
+        document.getElementById('measureResultBadge').classList.add('hidden');
+      }
+      drawFullscreenCAD();
+    }
+
+    function exportBlueprintPNG() {
+      const cvs = document.getElementById('cadFullscreenCanvas');
+      const link = document.createElement('a');
+      link.download = `ArchStudio_Blueprint_${roomState.name.replace(/\s+/g, '_')}.png`;
+      link.href = cvs.toDataURL('image/png');
+      link.click();
+    }
+
+    // ========================================================
+    // RAB BUDGET CALCULATION MODAL
+    // ========================================================
+    function openRABModal() {
+      const area = roomState.width * roomState.length;
+      const count = placedObjects.length;
+
+      const structCost = area * 4200000;
+      const wallCost = area * 1600000;
+      const finishCost = area * 950000;
+      const furnCost = count * 3500000;
+      const total = structCost + wallCost + finishCost + furnCost;
+
+      document.getElementById('rabStructureCost').textContent = 'Rp ' + structCost.toLocaleString('id-ID');
+      document.getElementById('rabWallCost').textContent = 'Rp ' + wallCost.toLocaleString('id-ID');
+      document.getElementById('rabFinishingCost').textContent = 'Rp ' + finishCost.toLocaleString('id-ID');
+      document.getElementById('rabFurnitureCost').textContent = 'Rp ' + furnCost.toLocaleString('id-ID');
+      document.getElementById('rabFurnCount').textContent = count;
+      document.getElementById('rabTotalCost').textContent = 'Rp ' + total.toLocaleString('id-ID');
+
+      document.getElementById('rabModal').classList.remove('hidden');
+    }
+
+    function closeRABModal() {
+      document.getElementById('rabModal').classList.add('hidden');
+    }
+
+    // ========================================================
+    // CONSTRUCTION STAGE SIMULATOR
+    // ========================================================
+    let isConstructionActive = false;
+
+    function toggleConstructionMode() {
+      isConstructionActive = !isConstructionActive;
+      const bar = document.getElementById('constructionBar');
+      if (isConstructionActive) {
+        bar.classList.remove('hidden');
+        setConstructionStage(document.getElementById('sliderConstruction').value);
+      } else {
+        bar.classList.add('hidden');
+        // Reset full visibility
+        roomGroup.visible = true;
+        furnitureGroup.visible = true;
+      }
+    }
+
+    function setConstructionStage(stage) {
+      stage = parseInt(stage);
+      const labels = [
+        "Tahap 1: Pondasi & Groundwork",
+        "Tahap 2: Kolom & Balok Struktural",
+        "Tahap 3: Dinding & Partisi",
+        "Tahap 4: Atap & Plafon",
+        "Tahap 5: Finishing & Perabot Lengkap"
+      ];
+      document.getElementById('constructionStageLabel').textContent = labels[stage - 1];
+
+      // Progressive elements visibility
+      if (stage === 1) {
+        roomGroup.visible = true;
+        furnitureGroup.visible = false;
+      } else if (stage === 2 || stage === 3 || stage === 4) {
+        roomGroup.visible = true;
+        furnitureGroup.visible = false;
+      } else {
+        roomGroup.visible = true;
+        furnitureGroup.visible = true;
+      }
+    }
+
+    // ========================================================
+    // FIRST-PERSON WALKTHROUGH (WASD)
+    // ========================================================
+    const keysPressed = {};
+    window.addEventListener('keydown', (e) => {
+      keysPressed[e.key.toLowerCase()] = true;
+      if (cameraMode === 'walk') {
+        const speed = 0.2;
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        dir.y = 0;
+        dir.normalize();
+
+        const side = new THREE.Vector3(-dir.z, 0, dir.x);
+
+        if (keysPressed['w']) camera.position.addScaledVector(dir, speed);
+        if (keysPressed['s']) camera.position.addScaledVector(dir, -speed);
+        if (keysPressed['a']) camera.position.addScaledVector(side, -speed);
+        if (keysPressed['d']) camera.position.addScaledVector(side, speed);
+      }
+      if (e.key === 'Escape' && cameraMode === 'walk') {
+        setCameraMode('orbit');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key.toLowerCase()] = false;
+    });
+
     function setCameraMode(mode) {
       cameraMode = mode;
-      document.getElementById('btnCamOrbit').className = mode === 'orbit' ? 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition' : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition';
-      document.getElementById('btnCamWalk').className = mode === 'walk' ? 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition' : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition';
-      document.getElementById('btnCamTop').className = mode === 'top' ? 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition' : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition';
+      document.getElementById('btnCamOrbit').className = mode === 'orbit' ? 'px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition' : 'px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition';
+      document.getElementById('btnCamWalk').className = mode === 'walk' ? 'px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-1.5 transition' : 'px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white font-medium flex items-center gap-1.5 transition';
 
       const crosshair = document.getElementById('walkthroughCrosshair');
       const hint = document.getElementById('walkthroughHint');
@@ -1082,225 +2296,200 @@
         crosshair.style.display = 'none';
         hint.classList.add('hidden');
         controls.enabled = true;
-        camera.position.set(6, 6, 8);
+        camera.position.set(7, 7, 9);
         controls.target.set(0, 1, 0);
-      } else if (mode === 'top') {
-        crosshair.style.display = 'none';
-        hint.classList.add('hidden');
-        controls.enabled = true;
-        camera.position.set(0, 12, 0.001);
-        controls.target.set(0, 0, 0);
       } else if (mode === 'walk') {
         crosshair.style.display = 'block';
         hint.classList.remove('hidden');
         controls.enabled = false;
-        camera.position.set(0, 1.6, roomState.length / 2 - 0.5); // Human eye-level
+        camera.position.set(0, 1.6, roomState.length / 2 - 0.5);
         camera.lookAt(0, 1.6, 0);
       }
     }
 
-    // Walkthrough keyboard listeners
-    window.addEventListener('keydown', (e) => {
-      if (cameraMode !== 'walk') return;
-      const speed = 0.25;
-      const dir = new THREE.Vector3();
-      camera.getWorldDirection(dir);
-      dir.y = 0;
-      dir.normalize();
-
-      const side = new THREE.Vector3(-dir.z, 0, dir.x);
-
-      if (e.key === 'w' || e.key === 'W') camera.position.addScaledVector(dir, speed);
-      if (e.key === 's' || e.key === 'S') camera.position.addScaledVector(dir, -speed);
-      if (e.key === 'a' || e.key === 'A') camera.position.addScaledVector(side, -speed);
-      if (e.key === 'd' || e.key === 'D') camera.position.addScaledVector(side, speed);
-      if (e.key === 'Escape') setCameraMode('orbit');
-    });
-
     // ========================================================
-    // CONSTRUCTION SIMULATOR MODE
+    // TEMPLATE & MAPS LOADER (6 MAPS)
     // ========================================================
-    let isConstructionModeActive = false;
-
-    function toggleConstructionMode() {
-      isConstructionModeActive = !isConstructionModeActive;
-      const bar = document.getElementById('constructionBar');
-      if (isConstructionModeActive) {
-        bar.classList.remove('hidden');
-        setConstructionStage(3);
-      } else {
-        bar.classList.add('hidden');
-        setConstructionStage(5);
-      }
-    }
-
-    function setConstructionStage(stage) {
-      stage = parseInt(stage);
-      const labels = [
-        "",
-        "Tahap 1: Pondasi & Footings Beton",
-        "Tahap 2: Kolom & Balok Struktur",
-        "Tahap 3: Dinding Bata & Bukaan",
-        "Tahap 4: Rangka Atap & Plafon",
-        "Tahap 5: Finishing Interior & Perabot"
-      ];
-      document.getElementById('constructionStageLabel').textContent = labels[stage];
-
-      if (stage === 1) {
-        roomGroup.visible = false;
-        furnitureGroup.visible = false;
-      } else if (stage === 2) {
-        roomGroup.visible = false;
-        furnitureGroup.visible = false;
-      } else if (stage === 3) {
-        roomGroup.visible = true;
-        furnitureGroup.visible = false;
-      } else if (stage >= 4) {
-        roomGroup.visible = true;
-        furnitureGroup.visible = true;
-      }
-    }
-
-    // ========================================================
-    // TEMPLATES & EXPORT
-    // ========================================================
-    async function loadTemplatesList() {
+    async function loadTemplateList() {
       try {
         const res = await fetch(`${API_BASE}/api/ai/templates`);
         const json = await res.json();
-        if (json.success && json.templates) {
-          const c = document.getElementById('templateListContainer');
-          c.innerHTML = '';
+        if (json.success) {
+          const container = document.getElementById('templateListContainer');
+          container.innerHTML = '';
           json.templates.forEach(t => {
             const card = document.createElement('div');
-            card.className = 'p-2.5 rounded-xl bg-[#0a0f1d] hover:bg-blue-600/10 border border-white/5 cursor-pointer transition';
-            card.onclick = () => applyTemplateData(t);
+            card.className = "p-3 rounded-xl bg-[#0a0f1d] hover:bg-blue-600/10 border border-white/5 hover:border-blue-500/30 transition cursor-pointer space-y-1.5";
+            card.onclick = () => loadTemplate(t.id);
             card.innerHTML = `
-              <p class="text-xs font-bold text-white">${t.name}</p>
-              <p class="text-[10px] text-blue-400 font-semibold mt-0.5">${t.category}</p>
-              <p class="text-[10px] text-slate-400 mt-1 line-clamp-2">${t.description}</p>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white text-xs">${t.name}</span>
+                <span class="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">${t.category}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 leading-snug">${t.description}</p>
+              <div class="flex items-center gap-2 pt-1 text-[10px] text-slate-500 font-mono">
+                <span>Dimensi: ${t.room.width}m × ${t.room.length}m</span>
+                <span>•</span>
+                <span>${t.objects.length} Elemen</span>
+              </div>
             `;
-            c.appendChild(card);
+            container.appendChild(card);
           });
         }
       } catch (err) {
-        console.warn("Gagal memuat template dari backend:", err);
+        console.error("Gagal memuat templates:", err);
       }
     }
 
-    function applyTemplateData(t) {
-      document.getElementById('projectTitle').textContent = `Proyek: ${t.name}`;
-      roomState.width = t.room.width;
-      roomState.length = t.room.length;
-      roomState.height = t.room.height;
-      roomState.floorMaterial = t.room.floor_material.includes('wood') ? 'parquet' : 'marble';
-      roomState.wallMaterial = t.room.wall_material === 'concrete' ? 'concrete' : 'white';
+    async function loadTemplate(templateId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/templates`);
+        const json = await res.json();
+        const t = json.templates.find(item => item.id === templateId);
+        if (!t) return;
 
-      document.getElementById('sliderWidth').value = roomState.width;
-      document.getElementById('sliderLength').value = roomState.length;
-      document.getElementById('sliderHeight').value = roomState.height;
-      updateRoomDimensions();
+        // Apply room dimensions
+        roomState.name = t.room.name || t.name;
+        roomState.width = t.room.width;
+        roomState.length = t.room.length;
+        roomState.height = t.room.height || 3.2;
+        roomState.wallMaterial = t.room.wall_material || 'white';
+        roomState.floorMaterial = t.room.floor_material || 'parquet';
 
-      while (furnitureGroup.children.length > 0) {
-        furnitureGroup.remove(furnitureGroup.children[0]);
-      }
-      placedObjects = [];
+        document.getElementById('sliderWidth').value = roomState.width;
+        document.getElementById('sliderLength').value = roomState.length;
+        document.getElementById('sliderHeight').value = roomState.height;
+        updateRoomDimensions();
 
-      t.objects.forEach(o => {
-        spawnFurniture(o.type, o.x, o.z, o.rotation || 0);
-      });
-      deselectObject();
-      setLightingPreset(t.lighting || 'noon');
-      document.getElementById('lightingSelect').value = t.lighting || 'noon';
-    }
+        // Clear existing furniture
+        while (furnitureGroup.children.length > 0) {
+          furnitureGroup.remove(furnitureGroup.children[0]);
+        }
+        placedObjects = [];
+        deselectObject();
 
-    function loadTemplate(templateId) {
-      fetch(`${API_BASE}/api/ai/templates`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.templates) {
-            const t = data.templates.find(x => x.id === templateId) || data.templates[0];
-            applyTemplateData(t);
-          }
+        // Spawn template objects
+        t.objects.forEach(obj => {
+          spawnFurniture(obj.type, obj.x, obj.z, obj.rotation || 0);
         });
-    }
 
-    function captureRender() {
-      renderer.render(scene, camera);
-      const dataUrl = renderer.domElement.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `ArchStudio_Render_${Date.now()}.png`;
-      a.click();
+        if (t.lighting) {
+          setLightingPreset(t.lighting);
+        }
+        deselectObject();
+      } catch (err) {
+        console.error("Gagal apply template:", err);
+      }
     }
 
     // ========================================================
-    // AI ARCHITECTURE ASSISTANT & DESIGN CRITIC
+    // AI ARCHITECTURE ASSISTANT (LFM 8B)
     // ========================================================
     async function sendAICommand() {
       const input = document.getElementById('aiInputPrompt');
       const prompt = input.value.trim();
       if (!prompt) return;
 
-      appendAIMessage('user', prompt);
-      input.value = '';
+      appendChatMessage("user", prompt);
+      input.value = "";
 
       try {
-        const res = await fetch(`${API_BASE}/api/ai/instruction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: prompt,
-            current_scene: { room: roomState, objects: placedObjects.map(o => ({ type: o.type, x: o.x, z: o.z })) }
-          })
-        });
+        const currentScene = {
+          room: roomState,
+          objects: placedObjects.map(o => ({ type: o.type, x: o.x, z: o.z, rotation: o.rotation }))
+        };
 
+        const res = await fetch(`${API_BASE}/api/ai/instruction`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt, current_scene: currentScene })
+        });
         const json = await res.json();
         if (json.success && json.result) {
           const r = json.result;
-          appendAIMessage('bot', r.explanation);
+          appendChatMessage("ai", r.explanation);
 
-          // Execute action deterministically
-          if (r.action === 'create_room') {
+          // Execute action
+          if (r.action === "load_template") {
+            loadTemplate(r.data.template_id);
+          } else if (r.action === "create_room") {
+            roomState.name = r.data.name;
             roomState.width = r.data.width;
             roomState.length = r.data.length;
-            document.getElementById('sliderWidth').value = r.data.width;
-            document.getElementById('sliderLength').value = r.data.length;
+            roomState.height = r.data.height;
+            document.getElementById('sliderWidth').value = roomState.width;
+            document.getElementById('sliderLength').value = roomState.length;
+            document.getElementById('sliderHeight').value = roomState.height;
             updateRoomDimensions();
 
             if (r.recommended_furniture) {
               while (furnitureGroup.children.length > 0) furnitureGroup.remove(furnitureGroup.children[0]);
               placedObjects = [];
-              r.recommended_furniture.forEach(f => spawnFurniture(f.type, f.x, f.z, f.rotation));
+              r.recommended_furniture.forEach(f => spawnFurniture(f.type, f.x, f.z, f.rotation || 0));
+              deselectObject();
             }
-          } else if (r.action === 'set_material') {
+          } else if (r.action === "set_material") {
             applyMaterial(r.data.target, r.data.material);
-          } else if (r.action === 'set_lighting') {
+          } else if (r.action === "set_lighting") {
             setLightingPreset(r.data.preset);
-            document.getElementById('lightingSelect').value = r.data.preset;
-          } else if (r.action === 'add_furniture') {
-            spawnFurniture(r.data.type, 0, 0, 0);
+          } else if (r.action === "add_furniture") {
+            spawnFurniture(r.data.type, r.data.position[0], r.data.position[2], r.data.rotation);
           }
         }
       } catch (err) {
-        appendAIMessage('bot', 'Maaf, terjadi kendala komunikasi dengan mesin LFM 8B.');
+        appendChatMessage("ai", "Terjadi kesalahan saat memproses instruksi arsitektur.");
       }
+    }
+
+    function appendChatMessage(sender, text) {
+      const history = document.getElementById('aiChatHistory');
+      const msg = document.createElement('div');
+      msg.className = "flex gap-2";
+
+      if (sender === "user") {
+        msg.innerHTML = `
+          <div class="w-6 h-6 rounded-md bg-blue-600/30 border border-blue-500/40 flex items-center justify-center shrink-0 text-blue-400">
+            <i data-lucide="user" class="w-3.5 h-3.5"></i>
+          </div>
+          <div class="bg-[#0f172a] border border-white/10 rounded-xl p-2.5 text-slate-200 leading-relaxed flex-1">
+            <p>${text}</p>
+          </div>
+        `;
+      } else {
+        msg.innerHTML = `
+          <div class="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center shrink-0 text-indigo-400">
+            <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+          </div>
+          <div class="bg-[#0b1220] border border-indigo-500/20 rounded-xl p-2.5 text-slate-300 leading-relaxed flex-1 space-y-1">
+            <span class="text-[10px] text-indigo-400 font-bold block">Liquid AI LFM 8B</span>
+            <p>${text}</p>
+          </div>
+        `;
+      }
+
+      history.appendChild(msg);
+      history.scrollTop = history.scrollHeight;
+      lucide.createIcons();
     }
 
     async function runDesignCritic() {
       try {
+        const sceneData = {
+          room: roomState,
+          objects: placedObjects.map(o => ({ type: o.type, x: o.x, z: o.z }))
+        };
+
         const res = await fetch(`${API_BASE}/api/ai/critic`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scene: { room: roomState, objects: placedObjects.map(o => ({ type: o.type })) }
-          })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scene: sceneData })
         });
         const json = await res.json();
         if (json.success && json.evaluation) {
           const ev = json.evaluation;
           const box = document.getElementById('criticResultBox');
           box.classList.remove('hidden');
+
           document.getElementById('criticScore').textContent = `${ev.overall_score}/100`;
           document.getElementById('criticSummary').textContent = ev.summary;
 
@@ -1308,70 +2497,76 @@
           list.innerHTML = '';
           ev.critiques.forEach(c => {
             const item = document.createElement('div');
-            item.className = 'p-1.5 rounded bg-[#070b14] border border-white/5';
-            item.innerHTML = `<strong>${c.aspect}:</strong> ${c.message}`;
+            const color = c.type === 'good' ? 'text-emerald-400 bg-emerald-950/30 border-emerald-500/30' :
+                          c.type === 'warning' ? 'text-amber-400 bg-amber-950/30 border-amber-500/30' : 'text-blue-400 bg-blue-950/30 border-blue-500/30';
+            item.className = `p-1.5 rounded-lg border ${color} flex items-start gap-1.5`;
+            item.innerHTML = `<strong>${c.aspect}:</strong> <span>${c.message}</span>`;
             list.appendChild(item);
           });
         }
-      } catch (e) {
-        console.warn("Gagal menjalankan Design Critic:", e);
+      } catch (err) {
+        console.error("Gagal menjalankan AI Critic:", err);
       }
     }
 
-    function appendAIMessage(sender, text) {
-      const container = document.getElementById('aiChatHistory');
-      const div = document.createElement('div');
-      div.className = sender === 'user' ? 'flex justify-end' : 'flex gap-2';
-
-      if (sender === 'user') {
-        div.innerHTML = `
-          <div class="bg-blue-600 text-white rounded-xl p-2.5 text-xs max-w-[85%] leading-relaxed">
-            <p>${text}</p>
-          </div>
-        `;
-      } else {
-        div.innerHTML = `
-          <div class="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center shrink-0 text-indigo-400">
-            <i data-lucide="bot" class="w-3.5 h-3.5"></i>
-          </div>
-          <div class="bg-[#0b1220] border border-white/5 rounded-xl p-2.5 text-slate-200 leading-relaxed max-w-[85%]">
-            <p>${text}</p>
-          </div>
-        `;
-      }
-      container.appendChild(div);
-      container.scrollTop = container.scrollHeight;
-      lucide.createIcons();
-    }
-
-    // UI Tab Switchers
+    // ========================================================
+    // UI TABS & UTILITIES
+    // ========================================================
     function switchLeftTab(tab) {
-      ['rooms', 'furniture', 'materials', 'templates'].forEach(t => {
-        const c = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
-        const b = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
-        if (c && b) {
-          if (t === tab) {
-            c.classList.remove('hidden');
-            b.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1';
-          } else {
-            c.classList.add('hidden');
-            b.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center gap-1';
-          }
-        }
+      document.getElementById('tabContentRooms').classList.add('hidden');
+      document.getElementById('tabContentFurniture').classList.add('hidden');
+      document.getElementById('tabContentMaterials').classList.add('hidden');
+      document.getElementById('tabContentTemplates').classList.add('hidden');
+
+      const tabs = ['btnTabRooms', 'btnTabFurniture', 'btnTabMaterials', 'btnTabTemplates'];
+      tabs.forEach(id => {
+        document.getElementById(id).className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center gap-1';
+      });
+
+      if (tab === 'rooms') {
+        document.getElementById('tabContentRooms').classList.remove('hidden');
+        document.getElementById('btnTabRooms').className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1';
+      } else if (tab === 'furniture') {
+        document.getElementById('tabContentFurniture').classList.remove('hidden');
+        document.getElementById('btnTabFurniture').className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1';
+      } else if (tab === 'materials') {
+        document.getElementById('tabContentMaterials').classList.remove('hidden');
+        document.getElementById('btnTabMaterials').className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1';
+      } else if (tab === 'templates') {
+        document.getElementById('tabContentTemplates').classList.remove('hidden');
+        document.getElementById('btnTabTemplates').className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center justify-center gap-1';
+        loadTemplateList();
+      }
+    }
+
+    function filterFurnitureItems(query) {
+      const q = query.toLowerCase();
+      const items = document.querySelectorAll('.furn-item');
+      items.forEach(el => {
+        const text = el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? 'flex' : 'none';
       });
     }
 
     function toggleAIPanel() {
-      const p = document.getElementById('rightAIPanel');
-      p.classList.toggle('hidden');
-      setTimeout(onWindowResize, 350);
+      const panel = document.getElementById('rightAIPanel');
+      panel.classList.toggle('hidden');
+      onWindowResize();
     }
 
-    // Startup Initialization
+    function captureRender() {
+      deselectObject();
+      renderer.render(scene, camera);
+      const link = document.createElement('a');
+      link.download = `ArchStudio_Render_${Date.now()}.png`;
+      link.href = renderer.domElement.toDataURL('image/png');
+      link.click();
+    }
+
+    // Startup
     window.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
       init3D();
-      loadTemplatesList();
+      lucide.createIcons();
     });
   </script>
 </body>
