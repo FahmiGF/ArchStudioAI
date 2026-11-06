@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ArchStudio AI — 3D Architecture & 2D Blueprint CAD Simulator (LFM 8B)</title>
+  <title>ArchStudio AI — 3D Architecture & 2D Blueprint CAD Studio (LFM 8B)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Three.js CDN -->
@@ -21,8 +21,8 @@
       user-select: none;
     }
     .panel-glass {
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.90);
+      backdrop-filter: blur(18px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .blueprint-bg {
@@ -34,9 +34,9 @@
         linear-gradient(90deg, rgba(30, 77, 140, 0.15) 1px, transparent 1px);
       background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
     }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
     #walkthroughCrosshair {
       display: none;
@@ -65,19 +65,295 @@
 </head>
 <body class="h-screen w-screen flex flex-col antialiased">
 
-  <!-- Top Navigation Header -->
+  <!-- ======================================================== -->
+  <!-- MAIN MENU / WELCOME SCREEN MODAL OVERLAY -->
+  <!-- ======================================================== -->
+  <div id="mainMenuOverlay" class="fixed inset-0 z-50 bg-[#070b14]/90 backdrop-blur-xl flex items-center justify-center p-4 transition-all duration-300">
+    <div class="panel-glass max-w-xl w-full rounded-3xl border border-white/10 p-8 shadow-2xl relative overflow-hidden space-y-6">
+      <!-- Glow ambient background effect -->
+      <div class="absolute -top-24 -left-24 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Header Branding -->
+      <div class="text-center space-y-2 relative">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl shadow-blue-500/30 text-white mb-2">
+          <i data-lucide="building-2" class="w-8 h-8"></i>
+        </div>
+        <h1 class="text-2xl font-black text-white tracking-wide">ArchStudio AI</h1>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto">
+          Interactive 3D Architecture, 2D Blueprint CAD & AI Spatial Simulator with Liquid AI LFM 8B
+        </p>
+        <div class="flex items-center justify-center gap-2 pt-1">
+          <span class="text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full">v0.2.5 Expand Edition</span>
+          <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">Co-Founder: SealiusHQ</span>
+        </div>
+      </div>
+
+      <!-- Menu Actions Buttons -->
+      <div class="space-y-2.5 relative pt-2">
+        <!-- 1. Start Building -->
+        <button onclick="closeMainMenu()" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/30 transition transform hover:-translate-y-0.5">
+          <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+          <span>Start Building (Mulai Merancang)</span>
+        </button>
+
+        <!-- 2. Pilih Preset Template Ruangan -->
+        <button onclick="openPresetsFromMenu()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-xs flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="layout-template" class="w-4 h-4 text-cyan-400"></i>
+            <span>Pilih Template Preset (Office, Mall, School, dll.)</span>
+          </div>
+          <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-mono">10 Presets</span>
+        </button>
+
+        <!-- 3. Credit -->
+        <button onclick="openCreditModal()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-xs flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+            <span>Credit & Attribution</span>
+          </div>
+          <span class="text-[10px] text-slate-400">SealiusHQ</span>
+        </button>
+
+        <!-- 4. Settings -->
+        <button onclick="openSettingsModal()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-xs flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="settings" class="w-4 h-4 text-indigo-400"></i>
+            <span>Settings (Pengaturan Studio)</span>
+          </div>
+          <span class="text-[10px] text-slate-400">Grafis & CAD</span>
+        </button>
+
+        <!-- 5. Update Logs -->
+        <button onclick="openUpdateLogsModal()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-xs flex items-center justify-between transition">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="history" class="w-4 h-4 text-emerald-400"></i>
+            <span>Update Logs (Catatan Rilis)</span>
+          </div>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">v0.2.5</span>
+        </button>
+      </div>
+
+      <div class="text-center pt-2 border-t border-white/5 text-[11px] text-slate-500">
+        Tekan tombol <strong class="text-slate-400">Start Building</strong> untuk mulai merancang dalam kanvas 3D.
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- CREDIT MODAL -->
+  <!-- ======================================================== -->
+  <div id="creditModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="panel-glass max-w-md w-full rounded-2xl border border-amber-500/30 p-6 space-y-4 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+            <i data-lucide="award" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Credit & Acknowledgements</h3>
+            <p class="text-[10px] text-slate-400">Pengembang & Kontributor ArchStudio AI</p>
+          </div>
+        </div>
+        <button onclick="closeCreditModal()" class="text-slate-400 hover:text-white p-1 rounded">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs leading-relaxed">
+        <div class="p-3 bg-gradient-to-r from-amber-950/30 to-blue-950/30 rounded-xl border border-amber-500/20 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-amber-300 font-bold text-sm">SealiusHQ</span>
+            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono font-semibold">Co-Founder</span>
+          </div>
+          <p class="text-[11px] text-slate-300">
+            Co-Founder & Lead Visionary dari proyek ArchStudio AI, memprakarsai konsep simulasi interior/exterior berdaya kecerdasan buatan, integrasi 2D Blueprint CAD teknis, dan preset fasilitas berskala makro.
+          </p>
+        </div>
+
+        <div class="space-y-1.5 p-3 bg-[#0a0f1d] rounded-xl border border-white/5 text-[11px] text-slate-400">
+          <p class="font-semibold text-slate-200">Teknologi Inti:</p>
+          <ul class="list-disc list-inside space-y-0.5">
+            <li><strong class="text-slate-300">Liquid AI LFM 8B:</strong> Natural language spatial reasoning & architectural critic.</li>
+            <li><strong class="text-slate-300">Three.js WebGL Engine:</strong> PBR dynamic shadows, procedural 3D furniture mesh.</li>
+            <li><strong class="text-slate-300">FastAPI Architecture:</strong> Async RESTful micro-service engine.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="closeCreditModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SETTINGS MODAL -->
+  <!-- ======================================================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="panel-glass max-w-md w-full rounded-2xl border border-indigo-500/30 p-6 space-y-4 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Studio Settings (Pengaturan)</h3>
+            <p class="text-[10px] text-slate-400">Konfigurasi Render 3D & Akurasi CAD</p>
+          </div>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white p-1 rounded">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- Shadow Quality -->
+        <div class="flex items-center justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <div>
+            <span class="text-slate-200 font-semibold block">Kualitas Bayangan (Shadows)</span>
+            <span class="text-[10px] text-slate-500">Soft Shadow PCF Map 2048px</span>
+          </div>
+          <select id="settingShadows" onchange="applySettings()" class="bg-[#0f172a] text-slate-300 border border-white/10 rounded-lg px-2.5 py-1 text-xs">
+            <option value="high" selected>Tinggi (Ultra)</option>
+            <option value="medium">Sedang</option>
+            <option value="off">Mati (Kinerja)</option>
+          </select>
+        </div>
+
+        <!-- CAD Snap Grid -->
+        <div class="flex items-center justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <div>
+            <span class="text-slate-200 font-semibold block">Grid Snapping CAD</span>
+            <span class="text-[10px] text-slate-500">Langkah pergeseran saat dragging</span>
+          </div>
+          <select id="settingGridSnap" onchange="applySettings()" class="bg-[#0f172a] text-slate-300 border border-white/10 rounded-lg px-2.5 py-1 text-xs">
+            <option value="0.1" selected>0.1 Meter (Halus)</option>
+            <option value="0.5">0.5 Meter (Standar)</option>
+            <option value="1.0">1.0 Meter (Grid)</option>
+          </select>
+        </div>
+
+        <!-- Unit System -->
+        <div class="flex items-center justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <div>
+            <span class="text-slate-200 font-semibold block">Sistem Satuan Ukuran</span>
+            <span class="text-[10px] text-slate-500">Standar DIN / SI Internasional</span>
+          </div>
+          <span class="font-mono text-cyan-400 font-bold bg-cyan-950/40 px-2 py-1 rounded border border-cyan-500/20">Metrik (m & m²)</span>
+        </div>
+
+        <!-- Wall Cutaway Default -->
+        <div class="flex items-center justify-between p-2.5 bg-[#0a0f1d] rounded-xl border border-white/5">
+          <div>
+            <span class="text-slate-200 font-semibold block">Potongan Dinding Depan (Cutaway)</span>
+            <span class="text-[10px] text-slate-500">Memudahkan pandangan ke dalam ruang</span>
+          </div>
+          <input type="checkbox" id="settingCutaway" checked onchange="document.getElementById('checkCutaway').checked = this.checked; toggleWallCutaway();" class="accent-blue-500 cursor-pointer">
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
+          Simpan & Terapkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- UPDATE LOGS (CHANGELOG) MODAL -->
+  <!-- ======================================================== -->
+  <div id="updateLogsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="panel-glass max-w-lg w-full rounded-2xl border border-emerald-500/30 p-6 space-y-4 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+            <i data-lucide="history" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Update Logs (Riwayat Versi)</h3>
+            <p class="text-[10px] text-slate-400">Catatan Pembaruan & Fitur Baru ArchStudio AI</p>
+          </div>
+        </div>
+        <button onclick="closeUpdateLogsModal()" class="text-slate-400 hover:text-white p-1 rounded">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Changelog List Container -->
+      <div class="space-y-3.5 max-h-80 overflow-y-auto pr-1 text-xs">
+        
+        <!-- Update 0.2.5 (Current Expansion) -->
+        <div class="p-3 bg-emerald-950/20 rounded-xl border border-emerald-500/30 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-emerald-300">Update 0.2.5 : Scale-up Presets & Welcome Menu UI</span>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">Latest</span>
+          </div>
+          <ul class="list-disc list-inside text-slate-300 space-y-1 text-[11px]">
+            <li><strong>Scale-Up Expanded Size:</strong> Ukuran kubus ruangan kini dapat diperluas hingga 30×30 meter untuk fasilitas publik besar.</li>
+            <li><strong>10 Template Presets:</strong> Office, Mall, Library, School, Parking Lot, Toilet, Server Room, Minimalist House, Villa, dan Warehouse.</li>
+            <li><strong>Main Menu UI:</strong> Menu utama interaktif dengan Start Building, Credit SealiusHQ, Settings, dan Update Logs.</li>
+          </ul>
+        </div>
+
+        <!-- Update 0.2.0 (Flexibility, 2D, Walkthrough, Blueprint) -->
+        <div class="p-3 bg-blue-950/20 rounded-xl border border-blue-500/30 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-300">Update 0.2.0 : Adding more flexibility, 2D, Walkthrough, and blueprint</span>
+            <span class="text-[10px] text-slate-400 font-mono">Major</span>
+          </div>
+          <ul class="list-disc list-inside text-slate-300 space-y-1 text-[11px]">
+            <li><strong>Perbaikan Relokasi Objek:</strong> Sofa dan dekorasi apa pun kini bisa dipindahkan bebas melalui drag mouse 3D dan denah 2D.</li>
+            <li><strong>2D Architectural Blueprint CAD:</strong> Studio denah layar penuh dengan anotasi dimensi meter, garis ganda DIN, dan penggaris ukur (*ruler*).</li>
+            <li><strong>First-Person Walkthrough (WASD):</strong> Berkeliling di dalam ruangan dengan pandangan mata manusia dan crosshair.</li>
+          </ul>
+        </div>
+
+        <!-- Update 0.0.5 (More furniture stuff & preset template) -->
+        <div class="p-3 bg-[#0a0f1d] rounded-xl border border-white/5 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-300">Update 0.0.5 : Adding more furniture stuff and preset template</span>
+            <span class="text-[10px] text-slate-500 font-mono">Initial</span>
+          </div>
+          <ul class="list-disc list-inside text-slate-400 space-y-1 text-[11px]">
+            <li>Menambahkan lebih dari 40+ variasi perabot meliputi ruang tamu, kamar tidur, perkantoran, sanitasi, dan eksterior.</li>
+            <li>Penambahan template desain awal dan kalkulator RAB konstruksi terintegrasi.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="closeUpdateLogsModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TOP NAVIGATION HEADER -->
+  <!-- ======================================================== -->
   <header class="h-14 panel-glass border-b border-white/10 px-4 flex items-center justify-between z-30 shrink-0">
     <div class="flex items-center gap-3">
+      <!-- Menu Button to reopen Welcome UI -->
+      <button onclick="openMainMenu()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition" title="Buka Menu Utama">
+        <i data-lucide="menu" class="w-4 h-4"></i>
+      </button>
+
       <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
         <i data-lucide="building-2" class="w-5 h-5"></i>
       </div>
       <div>
         <div class="flex items-center gap-2">
           <h1 class="font-bold text-sm text-white tracking-wide">ArchStudio AI</h1>
-          <span class="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">v2.5 LFM 8B</span>
+          <span class="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">v0.2.5 Expand</span>
           <span class="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">3D + 2D CAD</span>
         </div>
-        <p class="text-[10px] text-slate-400" id="headerRoomLabel">Ruang Tamu & Keluarga (5.0m × 4.0m)</p>
+        <p class="text-[10px] text-slate-400" id="headerRoomLabel">Ruang Tamu & Keluarga (6.0m × 5.0m)</p>
       </div>
     </div>
 
@@ -119,7 +395,7 @@
       <!-- RAB Budget Calculator -->
       <button onclick="openRABModal()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1.5 transition" title="Estimasi RAB Arsitektur">
         <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-        <span class="hidden sm:inline">RAB (Biaya)</span>
+        <span class="hidden sm:inline">RAB</span>
       </button>
 
       <!-- HD Render Snapshot -->
@@ -156,31 +432,35 @@
           <i data-lucide="palette" class="w-3.5 h-3.5"></i> Material
         </button>
         <button onclick="switchLeftTab('templates')" id="btnTabTemplates" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center gap-1">
-          <i data-lucide="folder" class="w-3.5 h-3.5"></i> Maps
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i> Presets
         </button>
       </div>
 
-      <!-- Tab Content 1: Room Dimensions & Walls -->
+      <!-- Tab Content 1: Expanded Room Dimensions & Scale-Up Controls -->
       <div id="tabContentRooms" class="p-4 space-y-4 overflow-y-auto flex-1">
         <div>
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <i data-lucide="ruler" class="w-3.5 h-3.5 text-blue-400"></i> Dimensi & Parameter Ruangan
-          </h3>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="ruler" class="w-3.5 h-3.5 text-blue-400"></i> Skala & Geometri Ruang
+            </h3>
+            <span class="text-[10px] text-cyan-400 font-mono bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20">Up to 30m</span>
+          </div>
+
           <div class="space-y-3 bg-[#0a0f1d] p-3 rounded-xl border border-white/5 text-xs">
             <div>
               <div class="flex justify-between text-slate-400 mb-1">
-                <span>Lebar Ruang (Width):</span>
+                <span>Lebar Ruangan (Width):</span>
                 <span id="labelWidth" class="text-white font-mono font-bold">6.0 m</span>
               </div>
-              <input type="range" id="sliderWidth" min="3.0" max="15.0" step="0.5" value="6.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderWidth" min="3.0" max="30.0" step="0.5" value="6.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div>
               <div class="flex justify-between text-slate-400 mb-1">
-                <span>Panjang Ruang (Length):</span>
+                <span>Panjang Ruangan (Length):</span>
                 <span id="labelLength" class="text-white font-mono font-bold">5.0 m</span>
               </div>
-              <input type="range" id="sliderLength" min="3.0" max="15.0" step="0.5" value="5.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderLength" min="3.0" max="30.0" step="0.5" value="5.0" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div>
@@ -188,7 +468,7 @@
                 <span>Tinggi Plafon (Height):</span>
                 <span id="labelHeight" class="text-white font-mono font-bold">3.2 m</span>
               </div>
-              <input type="range" id="sliderHeight" min="2.6" max="5.5" step="0.2" value="3.2" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
+              <input type="range" id="sliderHeight" min="2.6" max="6.5" step="0.2" value="3.2" oninput="updateRoomDimensions()" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <div class="pt-2 border-t border-white/5 flex items-center justify-between">
@@ -217,21 +497,24 @@
           </div>
         </div>
 
-        <!-- Door & Window Insets -->
+        <!-- Quick Scale Presets -->
         <div>
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Bukaan Arsitektur</h3>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <button onclick="addArchitecturalOpening('door')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 flex items-center justify-center gap-1.5 transition">
-              <i data-lucide="door-closed" class="w-4 h-4 text-amber-400"></i> + Pintu Kayu
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Skala Cepat Ruangan</h3>
+          <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+            <button onclick="setQuickDimension(6, 5, 3.2)" class="p-2 rounded-lg bg-white/5 hover:bg-blue-600/20 text-slate-200 border border-white/5 text-center transition">
+              Kamar (6×5m)
             </button>
-            <button onclick="addArchitecturalOpening('window')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 flex items-center justify-center gap-1.5 transition">
-              <i data-lucide="layout-grid" class="w-4 h-4 text-cyan-400"></i> + Jendela Kaca
+            <button onclick="setQuickDimension(14, 10, 3.6)" class="p-2 rounded-lg bg-white/5 hover:bg-blue-600/20 text-slate-200 border border-white/5 text-center transition">
+              Kantor (14×10m)
+            </button>
+            <button onclick="setQuickDimension(20, 14, 4.5)" class="p-2 rounded-lg bg-white/5 hover:bg-blue-600/20 text-slate-200 border border-white/5 text-center transition">
+              Mall (20×14m)
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Tab Content 2: Comprehensive Furniture Library (35+ Items) -->
+      <!-- Tab Content 2: Comprehensive Furniture Library (40+ Items) -->
       <div id="tabContentFurniture" class="hidden p-4 space-y-4 overflow-y-auto flex-1">
         <div class="flex items-center justify-between">
           <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -248,9 +531,7 @@
           
           <!-- Category 1: Living Room -->
           <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-blue-400 mb-1.5 flex items-center gap-1">
-              <span>🛋️ Ruang Tamu & Santai</span>
-            </p>
+            <p class="text-[11px] font-semibold text-blue-400 mb-1.5">🛋️ Ruang Tamu & Santai</p>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
               <button onclick="spawnFurniture('sofa')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">🛋️</span> <span>Sofa 3-Seat</span>
@@ -281,9 +562,7 @@
 
           <!-- Category 2: Bedroom -->
           <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center gap-1">
-              <span>🛏️ Kamar Tidur</span>
-            </p>
+            <p class="text-[11px] font-semibold text-purple-400 mb-1.5">🛏️ Kamar Tidur</p>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
               <button onclick="spawnFurniture('bed')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">🛏️</span> <span>Kasur King</span>
@@ -303,53 +582,9 @@
             </div>
           </div>
 
-          <!-- Category 3: Kitchen & Dining -->
+          <!-- Category 3: Office & School -->
           <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center gap-1">
-              <span>🍽️ Dapur & Ruang Makan</span>
-            </p>
-            <div class="grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="spawnFurniture('dining_table')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🪑</span> <span>Meja Makan 6</span>
-              </button>
-              <button onclick="spawnFurniture('kitchen_island')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🍳</span> <span>Kitchen Island</span>
-              </button>
-              <button onclick="spawnFurniture('kitchen_cabinet')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🗄️</span> <span>Kabinet & Kompor</span>
-              </button>
-              <button onclick="spawnFurniture('refrigerator')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🧊</span> <span>Kulkas 2 Pintu</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Category 4: Bathroom -->
-          <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-cyan-400 mb-1.5 flex items-center gap-1">
-              <span>🚿 Kamar Mandi</span>
-            </p>
-            <div class="grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="spawnFurniture('bathtub')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🛁</span> <span>Bathtub Akrilik</span>
-              </button>
-              <button onclick="spawnFurniture('shower_box')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🚿</span> <span>Shower Box Kaca</span>
-              </button>
-              <button onclick="spawnFurniture('toilet')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🚽</span> <span>Toilet Duduk</span>
-              </button>
-              <button onclick="spawnFurniture('sink_vanity')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🚰</span> <span>Washtafel Vanity</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Category 5: Perkantoran & Studio -->
-          <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-indigo-400 mb-1.5 flex items-center gap-1">
-              <span>💼 Perkantoran & Studio</span>
-            </p>
+            <p class="text-[11px] font-semibold text-indigo-400 mb-1.5">💼 Perkantoran & Pendidikan</p>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
               <button onclick="spawnFurniture('desk')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">💻</span> <span>Meja Eksekutif</span>
@@ -372,11 +607,9 @@
             </div>
           </div>
 
-          <!-- Category 6: Komersial & Mall -->
+          <!-- Category 4: Commercial Mall & Logistics -->
           <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-rose-400 mb-1.5 flex items-center gap-1">
-              <span>🛍️ Distrik Mall & Retail</span>
-            </p>
+            <p class="text-[11px] font-semibold text-rose-400 mb-1.5">🛍️ Mall, Retail & Gudang</p>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
               <button onclick="spawnFurniture('shelf_gondola')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">🛒</span> <span>Rak Gondola</span>
@@ -384,65 +617,42 @@
               <button onclick="spawnFurniture('cashier_counter')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">💳</span> <span>Meja Kasir</span>
               </button>
-              <button onclick="spawnFurniture('mannequin')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">👗</span> <span>Manekin Display</span>
-              </button>
               <button onclick="spawnFurniture('display_case')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">💎</span> <span>Etalase Kaca</span>
               </button>
-            </div>
-          </div>
-
-          <!-- Category 7: Industri & Gudang Pabrik -->
-          <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-orange-400 mb-1.5 flex items-center gap-1">
-              <span>🏭 Industri & Gudang Pabrik</span>
-            </p>
-            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button onclick="spawnFurniture('mannequin')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">👗</span> <span>Manekin Display</span>
+              </button>
               <button onclick="spawnFurniture('pallet_stack')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">📦</span> <span>Tumpukan Pallet</span>
               </button>
               <button onclick="spawnFurniture('forklift')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">🚜</span> <span>Forklift Industri</span>
               </button>
-              <button onclick="spawnFurniture('storage_tank')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🛢️</span> <span>Tangki Silo</span>
-              </button>
-              <button onclick="spawnFurniture('hvac_unit')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🌀</span> <span>Unit HVAC Sentral</span>
-              </button>
             </div>
           </div>
 
-          <!-- Category 8: Eksterior, Lanskap & Outdoor -->
+          <!-- Category 5: Toilet & Outdoor -->
           <div class="furniture-category-box">
-            <p class="text-[11px] font-semibold text-emerald-400 mb-1.5 flex items-center gap-1">
-              <span>🌴 Eksterior, Lanskap & Outdoor</span>
-            </p>
+            <p class="text-[11px] font-semibold text-emerald-400 mb-1.5">🌴 Sanitasi & Outdoor Parking</p>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
-              <button onclick="spawnFurniture('pool')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🏊</span> <span>Kolam Renang</span>
+              <button onclick="spawnFurniture('toilet')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚽</span> <span>Toilet Duduk</span>
               </button>
-              <button onclick="spawnFurniture('tree')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🌴</span> <span>Pohon Palem</span>
-              </button>
-              <button onclick="spawnFurniture('pine_tree')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🌲</span> <span>Pohon Cemara</span>
-              </button>
-              <button onclick="spawnFurniture('park_bench')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🪵</span> <span>Bangku Taman</span>
-              </button>
-              <button onclick="spawnFurniture('street_lamp')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🏮</span> <span>Lampu Taman</span>
+              <button onclick="spawnFurniture('sink_vanity')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🚰</span> <span>Washtafel Vanity</span>
               </button>
               <button onclick="spawnFurniture('car_sedan')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
                 <span class="text-base">🚗</span> <span>Mobil Sedan</span>
               </button>
-              <button onclick="spawnFurniture('solar_panel')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">⚡</span> <span>Panel Surya</span>
+              <button onclick="spawnFurniture('street_lamp')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🏮</span> <span>Lampu Taman/Tiang</span>
               </button>
-              <button onclick="spawnFurniture('fence')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
-                <span class="text-base">🚧</span> <span>Pagar Kayu</span>
+              <button onclick="spawnFurniture('pine_tree')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🌲</span> <span>Pohon Cemara</span>
+              </button>
+              <button onclick="spawnFurniture('pool')" class="furn-item p-2 rounded-lg bg-[#0a0f1d] hover:bg-blue-600/20 text-slate-200 border border-white/5 text-left flex items-center gap-2">
+                <span class="text-base">🏊</span> <span>Kolam Renang</span>
               </button>
             </div>
           </div>
@@ -498,10 +708,10 @@
         </div>
       </div>
 
-      <!-- Tab Content 4: Templates & Maps -->
+      <!-- Tab Content 4: Templates & Presets -->
       <div id="tabContentTemplates" class="hidden p-4 space-y-3 overflow-y-auto flex-1">
         <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-          <i data-lucide="map" class="w-3.5 h-3.5 text-blue-400"></i> Pilihan Map & Arsitektur
+          <i data-lucide="layout-template" class="w-3.5 h-3.5 text-blue-400"></i> Pilihan Preset Template
         </h3>
         <div id="templateListContainer" class="space-y-2.5">
           <!-- Populated by JS -->
@@ -532,7 +742,7 @@
               <span>Posisi X (Kiri-Kanan):</span>
               <span id="labelObjX" class="text-blue-400 font-mono font-bold">0.0 m</span>
             </div>
-            <input type="range" id="sliderObjX" min="-6.0" max="6.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
+            <input type="range" id="sliderObjX" min="-15.0" max="15.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
           </div>
 
           <!-- Position Z -->
@@ -541,12 +751,12 @@
               <span>Posisi Z (Maju-Mundur):</span>
               <span id="labelObjZ" class="text-blue-400 font-mono font-bold">0.0 m</span>
             </div>
-            <input type="range" id="sliderObjZ" min="-6.0" max="6.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
+            <input type="range" id="sliderObjZ" min="-15.0" max="15.0" step="0.1" value="0.0" oninput="onInspectorPositionChange()" class="w-full accent-blue-500 cursor-pointer">
           </div>
 
           <!-- D-Pad Nudge Buttons -->
           <div class="bg-[#0a0f1d] p-2 rounded-lg border border-white/5 flex items-center justify-between">
-            <span class="text-[10px] text-slate-400 font-medium">Geser Cepat (0.2m):</span>
+            <span class="text-[10px] text-slate-400 font-medium">Geser Halus (0.2m):</span>
             <div class="grid grid-cols-3 gap-1 w-24">
               <div></div>
               <button onclick="nudgeSelectedObject(0, -0.2)" class="p-1 rounded bg-white/5 hover:bg-white/15 text-white flex items-center justify-center text-xs" title="Maju">▲</button>
@@ -598,12 +808,12 @@
         </div>
         <canvas id="floorplan2DCanvas" class="flex-1 w-full bg-[#080d1a] rounded-lg mt-1 border border-white/5 cursor-crosshair" title="Klik dan drag perabot untuk memindahkan di 2D"></canvas>
         <div class="flex justify-between items-center pt-1 text-[10px] text-slate-400">
-          <span>Skala CAD: 1:50</span>
+          <span id="miniScaleText">Auto-Scale CAD</span>
           <span class="text-cyan-400">Drag titik untuk geser perabot</span>
         </div>
       </div>
 
-      <!-- Construction Timeline Bar (Shown when active) -->
+      <!-- Construction Timeline Bar -->
       <div id="constructionBar" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-20 panel-glass px-5 py-3 rounded-2xl border border-orange-500/30 flex items-center gap-4 text-xs shadow-2xl">
         <div class="flex items-center gap-2">
           <i data-lucide="hard-hat" class="w-4 h-4 text-orange-400"></i>
@@ -648,12 +858,12 @@
           </div>
           <div class="bg-[#0b1220] border border-white/5 rounded-xl p-2.5 text-slate-300 leading-relaxed space-y-1">
             <p class="font-semibold text-white">Halo! Saya Asisten Arsitektur LFM 8B 🏛️</p>
-            <p>Fitur baru telah siap:</p>
+            <p>Fitur skala luas (scale-up) telah aktif:</p>
             <ul class="list-disc list-inside text-[11px] text-blue-300 space-y-0.5 pt-1">
+              <li>Pilih template berskala besar (Office, Mall, School, Library, dll.)</li>
               <li>Pindahkan barang bebas via <strong>Drag Mouse</strong> atau slider koordinat</li>
               <li>Buka <strong>Mode 2D Blueprint CAD</strong> untuk drafting teknis</li>
-              <li>Pilihan 40+ perabot (Kantor, Industri, Mall, Villa)</li>
-              <li>Perhitungan Estimasi <strong>RAB Konstruksi</strong></li>
+              <li>Kalkulasi estimasi <strong>RAB Anggaran Biaya</strong> real-time</li>
             </ul>
           </div>
         </div>
@@ -701,7 +911,7 @@
             <span>Architectural Blueprint CAD Studio</span>
             <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded font-mono border border-cyan-500/30">DIN 1356-1</span>
           </h2>
-          <p class="text-[10px] text-cyan-300/70" id="cadHeaderSubtitle">Skala 1:50 — Proyeksi Ortogonal Top-Down</p>
+          <p class="text-[10px] text-cyan-300/70" id="cadHeaderSubtitle">Proyeksi Ortogonal Top-Down — Auto Scale</p>
         </div>
       </div>
 
@@ -728,11 +938,11 @@
       <div class="absolute bottom-8 right-8 panel-glass p-3 rounded-xl border border-cyan-500/30 text-xs w-72 space-y-1 font-mono text-cyan-100">
         <div class="font-bold text-white border-b border-cyan-500/20 pb-1 flex justify-between">
           <span>ARCHSTUDIO CAD</span>
-          <span id="cadScaleLabel">SCALE 1:50</span>
+          <span id="cadScaleLabel">SCALE DIN</span>
         </div>
         <div class="flex justify-between text-[11px]">
           <span class="text-cyan-400">Ruangan:</span>
-          <span id="cadRoomName" class="text-white">Living Pavilion</span>
+          <span id="cadRoomName" class="text-white">Ruang Tamu</span>
         </div>
         <div class="flex justify-between text-[11px]">
           <span class="text-cyan-400">Dimensi:</span>
@@ -820,7 +1030,7 @@
 
     // Core 3D Scene Variables
     let scene, camera, renderer, controls;
-    let roomGroup, furnitureGroup, lightingGroup, constructionGroup;
+    let roomGroup, furnitureGroup, lightingGroup, constructionGroup, groundGrid;
     let selectedObject = null;
     let cameraMode = 'orbit'; // 'orbit', 'walk'
     let isBlueprintFullscreen = false;
@@ -842,9 +1052,9 @@
     let measurePointA = null;
     let measurePointB = null;
 
-    // Scene State
+    // Scene State (Default Minimalist White Cube)
     let roomState = {
-      name: "Ruang Tamu & Keluarga",
+      name: "Ruang Tamu & Keluarga (Default)",
       width: 6.0,
       length: 5.0,
       height: 3.2,
@@ -897,8 +1107,8 @@
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0b0f19);
 
-      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 120);
-      camera.position.set(7, 7, 9);
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+      camera.position.set(8, 8, 10);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -923,8 +1133,8 @@
       scene.add(lightingGroup);
       scene.add(constructionGroup);
 
-      // Environment grid & ground plane
-      const groundGeo = new THREE.PlaneGeometry(60, 60);
+      // Massive expandable ground plane (covers up to 100m)
+      const groundGeo = new THREE.PlaneGeometry(120, 120);
       const groundMat = new THREE.MeshStandardMaterial({ color: 0x070b14, roughness: 0.95 });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
@@ -932,9 +1142,9 @@
       ground.receiveShadow = true;
       scene.add(ground);
 
-      const gridHelper = new THREE.GridHelper(40, 40, 0x1e293b, 0x0f172a);
-      gridHelper.position.y = 0.001;
-      scene.add(gridHelper);
+      groundGrid = new THREE.GridHelper(80, 80, 0x1e293b, 0x0f172a);
+      groundGrid.position.y = 0.001;
+      scene.add(groundGrid);
 
       // Setup Pointer & Drag Handlers for 3D Viewport
       setup3DDragControls(container);
@@ -945,13 +1155,65 @@
       // Window resize handler
       window.addEventListener('resize', onWindowResize);
 
-      // Setup initial scene & load template
+      // Setup initial scene & default white-cube template
       setupLighting();
       buildRoom();
       loadTemplate('minimalist-house');
 
       // Start animation loop
       animate();
+    }
+
+    // ========================================================
+    // MENU & MODAL CONTROLLERS
+    // ========================================================
+    function openMainMenu() {
+      document.getElementById('mainMenuOverlay').classList.remove('hidden');
+    }
+
+    function closeMainMenu() {
+      document.getElementById('mainMenuOverlay').classList.add('hidden');
+    }
+
+    function openPresetsFromMenu() {
+      closeMainMenu();
+      switchLeftTab('templates');
+    }
+
+    function openCreditModal() {
+      document.getElementById('creditModal').classList.remove('hidden');
+    }
+
+    function closeCreditModal() {
+      document.getElementById('creditModal').classList.add('hidden');
+    }
+
+    function openSettingsModal() {
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function applySettings() {
+      const shadowQuality = document.getElementById('settingShadows').value;
+      if (renderer) {
+        if (shadowQuality === 'off') {
+          renderer.shadowMap.enabled = false;
+        } else {
+          renderer.shadowMap.enabled = true;
+          sunLight.castShadow = true;
+        }
+      }
+    }
+
+    function openUpdateLogsModal() {
+      document.getElementById('updateLogsModal').classList.remove('hidden');
+    }
+
+    function closeUpdateLogsModal() {
+      document.getElementById('updateLogsModal').classList.add('hidden');
     }
 
     // ========================================================
@@ -968,21 +1230,18 @@
         const intersects = raycaster.intersectObjects(furnitureGroup.children, true);
 
         if (intersects.length > 0) {
-          // Find root furniture object
           let root = intersects[0].object;
           while (root.parent && root.parent !== furnitureGroup) {
             root = root.parent;
           }
           selectObject(root);
 
-          // Prepare direct dragging on floor plane
           if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
             dragOffset.copy(planeIntersect).sub(root.position);
             isDragging3D = true;
-            controls.enabled = false; // Disable orbit camera during drag
+            controls.enabled = false;
           }
         } else {
-          // Clicked outside furniture -> check if clicked on floor to deselect
           if (!isDragging3D) {
             deselectObject();
           }
@@ -999,13 +1258,11 @@
         raycaster.setFromCamera(mouse, camera);
         if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
           const newPos = planeIntersect.sub(dragOffset);
-          // Snap & clamp within room / outdoor boundaries
-          const hw = roomState.width / 2 + 2.0;
-          const hl = roomState.length / 2 + 2.0;
+          const hw = roomState.width / 2 + 3.0;
+          const hl = roomState.length / 2 + 3.0;
           selectedObject.position.x = Math.max(-hw, Math.min(hw, Math.round(newPos.x * 10) / 10));
           selectedObject.position.z = Math.max(-hl, Math.min(hl, Math.round(newPos.z * 10) / 10));
 
-          // Update data object
           const data = placedObjects.find(o => o.mesh === selectedObject);
           if (data) {
             data.x = selectedObject.position.x;
@@ -1022,7 +1279,7 @@
       window.addEventListener('pointerup', () => {
         if (isDragging3D) {
           isDragging3D = false;
-          controls.enabled = true; // Re-enable orbit camera
+          controls.enabled = true;
         }
       });
     }
@@ -1065,19 +1322,19 @@
       lightingGroup.add(ambientLight);
 
       sunLight = new THREE.DirectionalLight(0xfff7ed, 1.3);
-      sunLight.position.set(12, 16, 12);
+      sunLight.position.set(18, 24, 18);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.width = 2048;
       sunLight.shadow.mapSize.height = 2048;
       sunLight.shadow.camera.near = 0.5;
-      sunLight.shadow.camera.far = 45;
-      sunLight.shadow.camera.left = -15;
-      sunLight.shadow.camera.right = 15;
-      sunLight.shadow.camera.top = 15;
-      sunLight.shadow.camera.bottom = -15;
+      sunLight.shadow.camera.far = 70;
+      sunLight.shadow.camera.left = -25;
+      sunLight.shadow.camera.right = 25;
+      sunLight.shadow.camera.top = 25;
+      sunLight.shadow.camera.bottom = -25;
       lightingGroup.add(sunLight);
 
-      interiorPointLight = new THREE.PointLight(0xffedd5, 0.8, 15);
+      interiorPointLight = new THREE.PointLight(0xffedd5, 0.8, 25);
       interiorPointLight.position.set(0, roomState.height - 0.3, 0);
       lightingGroup.add(interiorPointLight);
     }
@@ -1089,7 +1346,7 @@
         scene.background.set(0x0b0f19);
         sunLight.color.set(0xffffff);
         sunLight.intensity = 1.3;
-        sunLight.position.set(10, 16, 10);
+        sunLight.position.set(18, 24, 18);
         ambientLight.intensity = 0.5;
         ambientLight.color.set(0xffffff);
         interiorPointLight.intensity = 0.3;
@@ -1097,7 +1354,7 @@
         scene.background.set(0x1a1a2e);
         sunLight.color.set(0xfed7aa);
         sunLight.intensity = 1.4;
-        sunLight.position.set(18, 7, 10);
+        sunLight.position.set(25, 10, 15);
         ambientLight.intensity = 0.4;
         ambientLight.color.set(0xfde68a);
         interiorPointLight.intensity = 0.5;
@@ -1105,7 +1362,7 @@
         scene.background.set(0x27153b);
         sunLight.color.set(0xfb923c);
         sunLight.intensity = 1.2;
-        sunLight.position.set(16, 4, -12);
+        sunLight.position.set(22, 6, -18);
         ambientLight.intensity = 0.35;
         ambientLight.color.set(0xf472b6);
         interiorPointLight.intensity = 0.7;
@@ -1114,13 +1371,13 @@
         sunLight.intensity = 0.05;
         ambientLight.intensity = 0.15;
         ambientLight.color.set(0x38bdf8);
-        interiorPointLight.intensity = 1.7;
+        interiorPointLight.intensity = 1.8;
         interiorPointLight.color.set(0xfef08a);
       }
     }
 
     // ========================================================
-    // ROOM GEOMETRY BUILDER
+    // EXPANDED ROOM GEOMETRY BUILDER (Up to 30m)
     // ========================================================
     function buildRoom() {
       while (roomGroup.children.length > 0) {
@@ -1192,10 +1449,10 @@
 
       // 7. Pitched Exterior Roof
       if (roomState.showRoof) {
-        const roofGeo = new THREE.ConeGeometry((Math.max(w, l) / 2) * 1.4, 2.0, 4);
+        const roofGeo = new THREE.ConeGeometry((Math.max(w, l) / 2) * 1.4, 2.4, 4);
         const roofMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.set(0, h + 1.0, 0);
+        roof.position.set(0, h + 1.2, 0);
         roof.rotation.y = Math.PI / 4;
         roof.castShadow = true;
         roomGroup.add(roof);
@@ -1226,6 +1483,18 @@
       buildRoom();
     }
 
+    function setQuickDimension(w, l, h) {
+      document.getElementById('sliderWidth').value = w;
+      document.getElementById('sliderLength').value = l;
+      document.getElementById('sliderHeight').value = h;
+      updateRoomDimensions();
+
+      // Adjust camera distance to fit room
+      const maxDim = Math.max(w, l);
+      camera.position.set(maxDim * 0.9, maxDim * 0.8, maxDim * 1.0);
+      controls.target.set(0, h * 0.4, 0);
+    }
+
     function toggleWallCutaway() {
       roomState.showCutaway = document.getElementById('checkCutaway').checked;
       buildRoom();
@@ -1248,7 +1517,7 @@
     }
 
     // ========================================================
-    // PROCEDURAL 3D FURNITURE FACTORY (35+ ASSETS)
+    // PROCEDURAL 3D FURNITURE FACTORY (40+ ASSETS)
     // ========================================================
     function createProceduralMesh(type) {
       const g = new THREE.Group();
@@ -1381,7 +1650,7 @@
           break;
         }
 
-        // --- 🚿 KAMAR MANDI ---
+        // --- 🚿 KAMAR MANDI & SANITASI ---
         case 'bathtub': {
           const tub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.8), materials.potWhite);
           tub.position.y = 0.3; tub.castShadow = true; g.add(tub);
@@ -1407,7 +1676,7 @@
           break;
         }
 
-        // --- 💼 PERKANTORAN ---
+        // --- 💼 PERKANTORAN & PENDIDIKAN ---
         case 'desk': {
           const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.75), materials.woodLight);
           top.position.y = 0.75; top.castShadow = true; g.add(top);
@@ -1511,7 +1780,7 @@
           break;
         }
 
-        // --- 🌴 EKSTERIOR & OUTDOOR ---
+        // --- 🌴 EKSTERIOR & OUTDOOR PARKING ---
         case 'pool': {
           const basin = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.4, 2.6), materials.potWhite);
           basin.position.y = 0.2; g.add(basin);
@@ -1612,12 +1881,10 @@
       deselectObject();
       selectedObject = mesh;
 
-      // Add visual highlight outline
       const bbox = new THREE.BoxHelper(mesh, 0x38bdf8);
       bbox.name = 'highlightBox';
       scene.add(bbox);
 
-      // Show inspector & coordinate sliders
       const inspector = document.getElementById('objectInspector');
       inspector.classList.remove('hidden');
       document.getElementById('inspectorName').innerHTML = `
@@ -1658,7 +1925,6 @@
       badge.classList.remove('hidden');
       badge.textContent = `X: ${selectedObject.position.x.toFixed(1)}m | Z: ${selectedObject.position.z.toFixed(1)}m`;
 
-      // Project 3D coordinate to screen space
       const v = new THREE.Vector3();
       selectedObject.getWorldPosition(v);
       v.y += 1.2;
@@ -1725,8 +1991,8 @@
     function duplicateSelectedObject() {
       if (!selectedObject) return;
       const type = selectedObject.userData.type;
-      const newX = selectedObject.position.x + 0.6;
-      const newZ = selectedObject.position.z + 0.6;
+      const newX = selectedObject.position.x + 0.8;
+      const newZ = selectedObject.position.z + 0.8;
       spawnFurniture(type, newX, newZ, (selectedObject.rotation.y * 180) / Math.PI);
     }
 
@@ -1738,7 +2004,7 @@
     }
 
     // ========================================================
-    // 2D MINI FLOORPLAN & INTERACTIVE DRAG-TO-MOVE
+    // 2D MINI FLOORPLAN (Auto-Fit Scaling for Large Spaces)
     // ========================================================
     function setup2DCanvasEvents() {
       const cvs = document.getElementById('floorplan2DCanvas');
@@ -1751,9 +2017,10 @@
 
         const cx = cvs.width / 2;
         const cy = cvs.height / 2;
-        const scale = 18;
+        // Dynamic scale factor based on room dimension
+        const maxDim = Math.max(roomState.width, roomState.length, 6.0);
+        const scale = (cvs.width - 30) / (maxDim + 2);
 
-        // Check if clicked near any placed furniture icon
         let found = null;
         for (let obj of placedObjects) {
           const fx = cx + obj.mesh.position.x * scale;
@@ -1781,7 +2048,8 @@
 
         const cx = cvs.width / 2;
         const cy = cvs.height / 2;
-        const scale = 18;
+        const maxDim = Math.max(roomState.width, roomState.length, 6.0);
+        const scale = (cvs.width - 30) / (maxDim + 2);
 
         const worldX = Math.round(((mouseX - cx) / scale) * 10) / 10;
         const worldZ = Math.round(((mouseY - cy) / scale) * 10) / 10;
@@ -1827,10 +2095,11 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       }
 
-      // Center & scale
+      // Dynamic Auto-Scale for 6m up to 30m rooms
       const cx = w / 2;
       const cy = h / 2;
-      const scale = 18;
+      const maxDim = Math.max(roomState.width, roomState.length, 6.0);
+      const scale = (w - 40) / (maxDim + 2);
 
       const rw = roomState.width * scale;
       const rl = roomState.length * scale;
@@ -1857,7 +2126,7 @@
         const isSel = (f === selectedObject);
         ctx.fillStyle = isSel ? '#38bdf8' : '#f59e0b';
         ctx.beginPath();
-        ctx.arc(fx, fy, isSel ? 7 : 5, 0, Math.PI * 2);
+        ctx.arc(fx, fy, isSel ? 6 : 4.5, 0, Math.PI * 2);
         ctx.fill();
 
         if (isSel) {
@@ -1868,7 +2137,7 @@
 
         ctx.fillStyle = isSel ? '#ffffff' : '#cbd5e1';
         ctx.font = '8px sans-serif';
-        ctx.fillText(f.userData.type || '', fx, fy + 12);
+        ctx.fillText(f.userData.type || '', fx, fy + 11);
       });
     }
 
@@ -1913,10 +2182,11 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // Scale & origin
+      // Auto-scale CAD so whether room is 6m or 30m, it fits centered
       const cx = w / 2;
       const cy = h / 2;
-      const scale = 38; // 38 pixels per meter in CAD mode
+      const maxDim = Math.max(roomState.width, roomState.length, 6.0);
+      const scale = Math.min((w - 140) / (roomState.width + 2), (h - 140) / (roomState.length + 2));
 
       const rw = roomState.width * scale;
       const rl = roomState.length * scale;
@@ -1925,7 +2195,7 @@
       // 1. Blueprint Grid & Coordinates
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
       ctx.lineWidth = 1;
-      const gridStep = scale * 0.5; // Every 0.5 meter
+      const gridStep = Math.max(scale * 1.0, 20);
       for (let x = cx % gridStep; x < w; x += gridStep) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
       }
@@ -1933,7 +2203,7 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       }
 
-      // 2. Room Outer & Inner Walls (Double-lines DIN standard)
+      // 2. Room Outer & Inner Walls
       ctx.fillStyle = 'rgba(6, 182, 212, 0.06)';
       ctx.fillRect(cx - rw / 2, cy - rl / 2, rw, rl);
 
@@ -1979,7 +2249,7 @@
       ctx.restore();
 
       // 4. North Arrow Compass
-      const compassX = 45;
+      const compassX = 50;
       const compassY = 55;
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 1.5;
@@ -2006,8 +2276,7 @@
         ctx.translate(fx, fy);
         ctx.rotate(f.rotation.y);
 
-        // Draw architectural CAD block based on type
-        drawArchitecturalSymbol(ctx, f.userData.type, isSel);
+        drawArchitecturalSymbol(ctx, f.userData.type, isSel, scale);
 
         ctx.restore();
       });
@@ -2045,36 +2314,32 @@
       ctx.fill();
     }
 
-    function drawArchitecturalSymbol(ctx, type, isSelected) {
+    function drawArchitecturalSymbol(ctx, type, isSelected, scale) {
       ctx.strokeStyle = isSelected ? '#38bdf8' : '#93c5fd';
       ctx.fillStyle = isSelected ? 'rgba(56, 189, 248, 0.3)' : 'rgba(147, 197, 253, 0.15)';
       ctx.lineWidth = isSelected ? 2 : 1.2;
 
-      // Dimension bounding block approximations
-      let bw = 35, bh = 25;
-      if (type === 'sofa') { bw = 55; bh = 28; }
-      else if (type === 'sofa_l') { bw = 65; bh = 45; }
-      else if (type === 'bed') { bw = 55; bh = 60; }
-      else if (type === 'bed_single') { bw = 32; bh = 55; }
-      else if (type === 'desk') { bw = 48; bh = 25; }
-      else if (type === 'meeting_table') { bw = 85; bh = 38; }
-      else if (type === 'pool') { bw = 110; bh = 70; }
-      else if (type === 'forklift') { bw = 40; bh = 55; }
-      else if (type === 'car_sedan') { bw = 50; bh = 95; }
-      else if (type === 'tree' || type === 'pine_tree') { bw = 35; bh = 35; }
+      let bw = 1.0 * scale, bh = 0.8 * scale;
+      if (type === 'sofa') { bw = 2.0 * scale; bh = 0.85 * scale; }
+      else if (type === 'sofa_l') { bw = 2.4 * scale; bh = 1.6 * scale; }
+      else if (type === 'bed') { bw = 2.0 * scale; bh = 2.2 * scale; }
+      else if (type === 'bed_single') { bw = 1.1 * scale; bh = 2.0 * scale; }
+      else if (type === 'desk') { bw = 1.5 * scale; bh = 0.75 * scale; }
+      else if (type === 'meeting_table') { bw = 3.0 * scale; bh = 1.2 * scale; }
+      else if (type === 'pool') { bw = 4.2 * scale; bh = 2.6 * scale; }
+      else if (type === 'forklift') { bw = 1.2 * scale; bh = 1.8 * scale; }
+      else if (type === 'car_sedan') { bw = 1.8 * scale; bh = 3.8 * scale; }
+      else if (type === 'tree' || type === 'pine_tree') { bw = 1.2 * scale; bh = 1.2 * scale; }
 
-      // Outer outline
       ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
       ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
 
-      // Inner details
       ctx.fillStyle = isSelected ? '#ffffff' : '#e0f2fe';
-      ctx.font = '8px sans-serif';
+      ctx.font = `${Math.max(8, Math.round(scale * 0.25))}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(type || 'item', 0, 3);
     }
 
-    // CAD Canvas Interactive Dragging & Measurement Tool
     function setupCADCanvasDrag() {
       const cvs = document.getElementById('cadFullscreenCanvas');
       if (!cvs) return;
@@ -2089,7 +2354,8 @@
             measurePointA = { x: mouseX, y: mouseY };
           } else {
             measurePointB = { x: mouseX, y: mouseY };
-            const distM = (Math.hypot(measurePointB.x - measurePointA.x, measurePointB.y - measurePointA.y) / 38).toFixed(2);
+            const scale = Math.min((cvs.width - 140) / (roomState.width + 2), (cvs.height - 140) / (roomState.length + 2));
+            const distM = (Math.hypot(measurePointB.x - measurePointA.x, measurePointB.y - measurePointA.y) / scale).toFixed(2);
             document.getElementById('measureResultText').textContent = `Jarak Terukur: ${distM} m`;
             document.getElementById('measureResultBadge').classList.remove('hidden');
             measurePointA = null;
@@ -2100,9 +2366,8 @@
 
         const cx = cvs.width / 2;
         const cy = cvs.height / 2;
-        const scale = 38;
+        const scale = Math.min((cvs.width - 140) / (roomState.width + 2), (cvs.height - 140) / (roomState.length + 2));
 
-        // Check if hit furniture
         let clicked = null;
         for (let obj of placedObjects) {
           const fx = cx + obj.mesh.position.x * scale;
@@ -2135,7 +2400,7 @@
 
         const cx = cvs.width / 2;
         const cy = cvs.height / 2;
-        const scale = 38;
+        const scale = Math.min((cvs.width - 140) / (roomState.width + 2), (cvs.height - 140) / (roomState.length + 2));
 
         const worldX = Math.round(((mouseX - cx) / scale) * 10) / 10;
         const worldZ = Math.round(((mouseY - cy) / scale) * 10) / 10;
@@ -2225,7 +2490,6 @@
         setConstructionStage(document.getElementById('sliderConstruction').value);
       } else {
         bar.classList.add('hidden');
-        // Reset full visibility
         roomGroup.visible = true;
         furnitureGroup.visible = true;
       }
@@ -2242,7 +2506,6 @@
       ];
       document.getElementById('constructionStageLabel').textContent = labels[stage - 1];
 
-      // Progressive elements visibility
       if (stage === 1) {
         roomGroup.visible = true;
         furnitureGroup.visible = false;
@@ -2262,7 +2525,7 @@
     window.addEventListener('keydown', (e) => {
       keysPressed[e.key.toLowerCase()] = true;
       if (cameraMode === 'walk') {
-        const speed = 0.2;
+        const speed = 0.25;
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
         dir.y = 0;
@@ -2296,19 +2559,20 @@
         crosshair.style.display = 'none';
         hint.classList.add('hidden');
         controls.enabled = true;
-        camera.position.set(7, 7, 9);
-        controls.target.set(0, 1, 0);
+        const maxDim = Math.max(roomState.width, roomState.length);
+        camera.position.set(maxDim * 0.9, maxDim * 0.8, maxDim * 1.0);
+        controls.target.set(0, roomState.height * 0.4, 0);
       } else if (mode === 'walk') {
         crosshair.style.display = 'block';
         hint.classList.remove('hidden');
         controls.enabled = false;
-        camera.position.set(0, 1.6, roomState.length / 2 - 0.5);
+        camera.position.set(0, 1.6, roomState.length / 2 - 0.8);
         camera.lookAt(0, 1.6, 0);
       }
     }
 
     // ========================================================
-    // TEMPLATE & MAPS LOADER (6 MAPS)
+    // PRESET TEMPLATES LOADER (10 PRESETS)
     // ========================================================
     async function loadTemplateList() {
       try {
@@ -2348,7 +2612,6 @@
         const t = json.templates.find(item => item.id === templateId);
         if (!t) return;
 
-        // Apply room dimensions
         roomState.name = t.room.name || t.name;
         roomState.width = t.room.width;
         roomState.length = t.room.length;
@@ -2360,6 +2623,11 @@
         document.getElementById('sliderLength').value = roomState.length;
         document.getElementById('sliderHeight').value = roomState.height;
         updateRoomDimensions();
+
+        // Adjust camera to fit new template size
+        const maxDim = Math.max(roomState.width, roomState.length);
+        camera.position.set(maxDim * 0.9, maxDim * 0.8, maxDim * 1.0);
+        controls.target.set(0, roomState.height * 0.4, 0);
 
         // Clear existing furniture
         while (furnitureGroup.children.length > 0) {
@@ -2409,7 +2677,6 @@
           const r = json.result;
           appendChatMessage("ai", r.explanation);
 
-          // Execute action
           if (r.action === "load_template") {
             loadTemplate(r.data.template_id);
           } else if (r.action === "create_room") {
@@ -2421,6 +2688,10 @@
             document.getElementById('sliderLength').value = roomState.length;
             document.getElementById('sliderHeight').value = roomState.height;
             updateRoomDimensions();
+
+            const maxDim = Math.max(roomState.width, roomState.length);
+            camera.position.set(maxDim * 0.9, maxDim * 0.8, maxDim * 1.0);
+            controls.target.set(0, roomState.height * 0.4, 0);
 
             if (r.recommended_furniture) {
               while (furnitureGroup.children.length > 0) furnitureGroup.remove(furnitureGroup.children[0]);
