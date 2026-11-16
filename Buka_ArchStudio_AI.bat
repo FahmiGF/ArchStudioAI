@@ -8,7 +8,12 @@ echo      Interior & Exterior Simulator with Liquid AI LFM 8B
 echo =====================================================================
 echo.
 
-cd /d "%~dp0backend"
+cd /d "%~dp0"
+if exist "backend\" (
+    cd backend
+) else if exist "archstudio-ai\backend\" (
+    cd "archstudio-ai\backend"
+)
 
 echo [1/3] Memeriksa dependensi Python...
 pip install -r requirements.txt --quiet --disable-pip-version-check

@@ -50,13 +50,34 @@ Katalog aset prosedural 3D mencakup berbagai tipologi bangunan:
 
 ---
 
-### 4. 🗺️ 6 Pilihan Map & Template Arsitektur Komprehensif
-1. **Minimalist Modern House**: Rumah 1 lantai konsep terbuka ($6.0\text{m} \times 5.0\text{m}$) dengan sofa L, karpet, TV konsol, rak buku, dan pencahayaan siang.
-2. **Scandinavian Cozy Bedroom**: Kamar tidur utama Nordik ($5.0\text{m} \times 4.5\text{m}$) dengan palet kayu oak, kasur king, nakas ganda, meja kerja, dan meja rias.
-3. **Perkantoran Modern (Corporate Office)**: Ruang kantor terbuka ($9.0\text{m} \times 7.0\text{m}$) dengan meja rapat dewan, meja kerja ergonomis, rak server sentral, whiteboard, dan dispenser.
-4. **Industri & Gudang Logistik (Warehouse)**: Bangunan tinggi ($11.0\text{m} \times 9.0\text{m}$, tinggi $4.5\text{m}$), dinding beton ekspos, forklift, tumpukan pallet, tangki silo, dan unit HVAC sentral.
-5. **Distrik Mall & Retail Boutique**: Butik pakaian dan toko retail ($8.0\text{m} \times 6.5\text{m}$) dengan rak gondola, display manekin, etalase kaca, meja kasir, dan pencahayaan hangat.
-6. **Villa Tropis & Kolam Renang Resort**: Paviliun terbuka santai ($8.5\text{m} \times 6.0\text{m}$) terintegrasi dengan kolam renang tropis luar ruangan, teras kayu, pohon palem, dan mobil sedan.
+### 4. 🗺️ Masterplan Studio (15 Macro Presets & 62+ Assets CAD)
+Mode perancangan skala makro dan site plan terpadu dengan detail arsitektur tingkat tinggi:
+- **15 Presets 1-Klik**: Campus, High School, Elementary School, University, Hospital Complex, Shopping Mall, Residential Neighborhood, Industrial Park, Data Center Campus, Resort & Hotel, Religious Complex, Stadium Complex, Civic Center, Airport, dan Downtown Mixed-Use.
+- **62+ Katalog Aset Beraneka Ragam** dalam 7 Kategori:
+  1. *Education* (10): High School, Elementary School, Kindergarten, University Hall, Library, Science Lab, Dormitory, Gymnasium, Auditorium, Cafeteria.
+  2. *Health & Civic* (8): Hospital, Clinic, Town Hall, Fire Station, Police Station, Museum, Church, Mosque.
+  3. *Commercial* (6): Shopping Mall, Office Tower, Hotel, Supermarket, Restaurant, Bank.
+  4. *Residential* (4): House, Villa, Townhouses, Apartment Block.
+  5. *Industrial* (5): Warehouse, Factory, Data Center, Parking Garage, Airport Terminal.
+  6. *Individual Items* (10): Server Cabinet, Server Rack Row, Server Room, Generator, Transformer, Water Tank, Cell Tower, Guard House, Bus Stop, Bench.
+  7. *Sports & Landscape* (19): Stadium, Football Field, Running Track, Basketball Court, Tennis Court, Swimming Pool, Playground, Fountain, Pond, Garden, Plaza, Parking Lot, Road, Runway, Solar Farm, Trees, Palms, Lamps, Flagpoles.
+- **Detail Arsitektural Presisi**:
+  - Fasad bergrid jendela, pintu kanopi, dan bayangan jatuh (*drop shadow*) sesuai ketinggian.
+  - Variasi atap: pelana/perisai bergenteng, barrel vault bergelombang, kubah radial mengkilap, atrium kaca, dan atap datar berparapet.
+  - Peralatan atap: unit chiller HVAC, panel surya photovoltaic, helipad 'H', skylight, cerobong, salib, dan menara masjid.
+  - Rak server dengan baris LED berkedip (*blinking animation*).
+  - Pohon berlapis, lapangan olahraga berspesifikasi resmi, dan area parkir mobil berwarna-warni.
+- **Pengukuran & Dimensi**:
+  - Label ukuran meter ($W \times D\text{ m}$) pada setiap aset.
+  - Garis dimensi CAD (panah, ekstensi, badge ukuran) saat aset dipilih.
+  - Panel inspektur menampilkan keliling (*perimeter*), *footprint area* ($m^2$), estimasi jumlah lantai, dan *Gross Floor Area* (GFA $m^2$).
+  - Input ukuran $W$, $D$, $H$ serta rotasi sudut yang dapat disunting langsung.
+  - Tabel *Schedule* aset lengkap dengan total luas tapak site dan skala bar meter dinamis $10\text{ m}$.
+- **Akses**: Klik tombol **Masterplan** di navigasi atas atau buka langsung via URL **`/masterplan`**.
+
+---
+
+### 5. 🛋️ Katalog Lebih dari 40+ Perabot & Elemen Lengkap
 
 ---
 
@@ -109,6 +130,11 @@ Akses antarmuka melalui peramban web: **[http://localhost:8002](http://localhost
 | **Walkthrough Orang Pertama** | Tombol `W` (Maju), `S` (Mundur), `A` (Kiri), `D` (Kanan), `ESC` (Keluar) |
 | **Penggaris Ukur (Ruler)** | Klik tombol **Ukur Jarak** di Mode Blueprint, lalu klik 2 titik |
 | **Buka Denah CAD** | Klik tombol **2D Blueprint CAD** di navbar atas |
+| **Buka Masterplan Studio** | Klik tombol **Masterplan** di navbar atas atau akses `/masterplan` |
+| **Rotasi Objek Masterplan** | Tekan tombol `R` atau klik **Rotate 90°** |
+| **Duplikat Aset Masterplan** | Tekan `Ctrl+D` atau klik tombol **Duplicate** |
+| **Hapus Aset Masterplan** | Tekan tombol `Delete` atau klik tombol **Delete** |
+| **Zoom & Pan Masterplan** | Scroll roda mouse untuk zoom; klik drag latar belakang untuk pan |
 
 ---
 

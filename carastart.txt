@@ -1,0 +1,26 @@
+================================================================================
+                    CARA MENJALANKAN: ARCHSTUDIO AI
+================================================================================
+
+Simulator 3D Arsitektur & CAD Blueprint berbasis FastAPI dan Three.js.
+
+Persyaratan:
+- Python 3.10+ (disarankan 3.11 atau 3.12/3.13)
+- Browser modern
+
+CARA 1 (Paling Cepat - 1-Click Launcher):
+1. Klik dua kali (double click) file:
+   Buka_ArchStudio_AI.bat
+2. Browser akan terbuka otomatis di http://localhost:8002
+
+CARA 2 (Manual via Terminal):
+1. Buka Terminal di folder backend:
+   cd "C:\Kuliah Sisfor\Github Project\archstudio-ai\backend"
+2. Install dependensi (jika belum):
+   pip install -r requirements.txt
+3. Jalankan server:
+   python run.py
+   (atau: uvicorn app.main:app --port 8002)
+4. Buka browser di http://localhost:8002
+
+Untuk menghentikan: Tekan Ctrl + C di jendela command prompt / terminal.

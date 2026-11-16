@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archstudio AI • Masterplan Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      background-color: #0d130f;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0c120e; }
+    ::-webkit-scrollbar-thumb { background: #233527; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+    /* Palette item card hover */
+    .asset-card {
+      transition: all 0.15s ease;
+      background: #141f17;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .asset-card:hover {
+      background: #1c2e22;
+      border-color: #10b981;
+      transform: translateY(-1px);
+    }
+    .asset-card:active {
+      transform: scale(0.97);
+    }
+
+    .btn-header {
+      background-color: #17241b;
+      border: 1px solid #273d2d;
+      color: #cbd5e1;
+      transition: all 0.15s ease;
+    }
+    .btn-header:hover {
+      background-color: #223528;
+      color: #ffffff;
+      border-color: #35533d;
+    }
+    .btn-header:active {
+      transform: scale(0.97);
+    }
+    .btn-header:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Minimap frame */
+    #minimapContainer {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col antialiased">
+
+  <!-- ======================================================== -->
+  <!-- TOP CONTROL HEADER -->
+  <!-- ======================================================== -->
+  <header class="h-13 bg-[#111a14] border-b border-[#1f3024] px-3 flex items-center justify-between z-30 shrink-0 text-xs gap-2">
+    <!-- Left: Branding & Presets -->
+    <div class="flex items-center gap-2.5">
+      <!-- Back to 3D Studio -->
+      <a href="/" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition flex items-center gap-1.5" title="Back to 3D Studio">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span class="hidden lg:inline text-[11px] font-medium">3D Studio</span>
+      </a>
+
+      <!-- Brand Title -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-emerald-600 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-900/40">
+          <i data-lucide="map" class="w-3.5 h-3.5"></i>
+        </div>
+        <span class="font-bold text-white text-sm tracking-tight hidden sm:inline">Archstudio AI <span class="text-emerald-400 font-semibold">• Masterplan</span></span>
+      </div>
+
+      <!-- Presets Selector (One-click load) -->
+      <div class="flex items-center gap-1.5 ml-1">
+        <select id="presetSelect" onchange="loadSelectedPreset()" class="bg-[#17241b] text-slate-200 border border-[#273d2d] rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer">
+          <option value="campus" selected>Campus</option>
+          <option value="high_school">High School</option>
+          <option value="elementary_school">Elementary School</option>
+          <option value="university">University</option>
+          <option value="hospital_complex">Hospital Complex</option>
+          <option value="shopping_mall">Shopping Mall</option>
+          <option value="residential">Residential Neighborhood</option>
+          <option value="industrial_park">Industrial Park</option>
+          <option value="data_center">Data Center Campus</option>
+          <option value="resort_hotel">Resort & Hotel</option>
+          <option value="religious_complex">Religious Complex</option>
+          <option value="stadium_complex">Stadium Complex</option>
+          <option value="civic_center">Civic Center</option>
+          <option value="airport">Airport</option>
+          <option value="downtown">Downtown Mixed-Use</option>
+        </select>
+        <button onclick="loadSelectedPreset()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/60 transition active:scale-95" title="Load selected preset template">
+          <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+          <span>Load preset</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center/Right Action Buttons -->
+    <div class="flex items-center gap-1.5 overflow-x-auto">
+      <!-- Undo / Redo -->
+      <button onclick="undoAction()" id="btnUndo" disabled class="btn-header px-2 py-1.5 rounded-lg flex items-center gap-1" title="Undo (Ctrl+Z)">
+        <i data-lucide="undo-2" class="w-3.5 h-3.5 text-amber-400"></i>
+      </button>
+      <button onclick="redoAction()" id="btnRedo" disabled class="btn-header px-2 py-1.5 rounded-lg flex items-center gap-1" title="Redo (Ctrl+Y)">
+        <i data-lucide="redo-2" class="w-3.5 h-3.5 text-amber-400"></i>
+      </button>
+
+      <div class="h-4 w-[1px] bg-[#273d2d] mx-0.5"></div>
+
+      <!-- Snap Toggle -->
+      <button onclick="toggleGridSnap()" id="btnSnap" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Toggle Snap Grid (1m, 5m, Free)">
+        <i data-lucide="magnet" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span id="snapText">Snap: 1m</span>
+      </button>
+
+      <!-- Distance Measure Ruler Tool -->
+      <button onclick="toggleRulerTool()" id="btnRuler" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Measure Distance Tool">
+        <i data-lucide="ruler" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>Ruler</span>
+      </button>
+
+      <div class="h-4 w-[1px] bg-[#273d2d] mx-0.5"></div>
+
+      <!-- Transform Controls -->
+      <button onclick="rotateSelectedAsset()" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Rotate (Hotkey: R)">
+        <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Rotate 90°</span>
+      </button>
+
+      <button onclick="duplicateSelectedAsset()" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Duplicate selected asset (Ctrl+D)">
+        <i data-lucide="copy" class="w-3.5 h-3.5 text-blue-400"></i>
+        <span class="hidden sm:inline">Duplicate</span>
+      </button>
+
+      <button onclick="deleteSelectedAsset()" class="btn-header px-2.5 py-1.5 rounded-lg hover:!bg-[#341b1b] hover:!text-red-300 flex items-center gap-1" title="Delete (Hotkey: Delete)">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-400"></i>
+        <span class="hidden sm:inline">Delete</span>
+      </button>
+
+      <div class="h-4 w-[1px] bg-[#273d2d] mx-0.5"></div>
+
+      <!-- Labels & View Controls -->
+      <button onclick="toggleLabels()" id="btnLabels" class="px-2.5 py-1.5 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 font-medium flex items-center gap-1 transition">
+        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+        <span id="labelStateText">Labels: on</span>
+      </button>
+
+      <button onclick="fitView()" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Fit View to All Assets">
+        <i data-lucide="maximize" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>Fit view</span>
+      </button>
+
+      <button onclick="clearCanvasPrompt()" class="btn-header px-2.5 py-1.5 rounded-lg text-slate-400 flex items-center gap-1" title="Clear All Assets">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">Clear</span>
+      </button>
+
+      <div class="h-4 w-[1px] bg-[#273d2d] mx-0.5"></div>
+
+      <!-- Save / Open / Export Dropdown Menu -->
+      <div class="relative inline-block text-left">
+        <button onclick="toggleExportMenu()" id="btnExportMenu" class="btn-header px-2.5 py-1.5 rounded-lg flex items-center gap-1" title="Save, Open & Export">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Export / Save</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+        </button>
+
+        <div id="exportDropdown" class="hidden absolute right-0 mt-1.5 w-44 rounded-xl bg-[#141f17] border border-[#273d2d] shadow-2xl py-1 z-50 text-xs">
+          <button onclick="saveProjectJSON(); closeExportMenu();" class="w-full text-left px-3 py-1.5 hover:bg-[#1f3426] text-slate-200 flex items-center gap-2">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i> Save Plan (JSON)
+          </button>
+          <button onclick="triggerLoadJSON(); closeExportMenu();" class="w-full text-left px-3 py-1.5 hover:bg-[#1f3426] text-slate-200 flex items-center gap-2">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-blue-400"></i> Open Plan (JSON)
+          </button>
+          <div class="h-[1px] bg-[#273d2d] my-1"></div>
+          <button onclick="exportPlanPNG(); closeExportMenu();" class="w-full text-left px-3 py-1.5 hover:bg-[#1f3426] text-slate-200 flex items-center gap-2">
+            <i data-lucide="image" class="w-3.5 h-3.5 text-amber-400"></i> Export PNG Image
+          </button>
+          <button onclick="exportScheduleCSV(); closeExportMenu();" class="w-full text-left px-3 py-1.5 hover:bg-[#1f3426] text-slate-200 flex items-center gap-2">
+            <i data-lucide="table" class="w-3.5 h-3.5 text-cyan-400"></i> Export Schedule (CSV)
+          </button>
+        </div>
+      </div>
+
+      <!-- Hidden File Input for Opening JSON -->
+      <input type="file" id="fileInputJSON" accept=".json" class="hidden" onchange="loadProjectJSON(event)" />
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- MAIN WORKSPACE -->
+  <!-- ======================================================== -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- LEFT ASSET PALETTE SIDEBAR (Width: 260px) -->
+    <aside class="w-64 bg-[#111a14] border-r border-[#1f3024] flex flex-col shrink-0 z-20">
+      <!-- Search Box -->
+      <div class="p-2.5 border-b border-[#1f3024]">
+        <div class="relative">
+          <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400"></i>
+          <input 
+            type="text" 
+            id="assetSearchInput" 
+            placeholder="Search assets (server, school...)" 
+            oninput="filterAssetPalette(this.value)"
+            class="w-full pl-8 pr-7 py-1.5 bg-[#0c140e] border border-[#233527] rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+          />
+          <button id="btnClearSearch" onclick="clearSearchInput()" class="hidden absolute right-2 top-2 text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Categories & Asset Grid List -->
+      <div id="paletteCategoriesContainer" class="flex-1 overflow-y-auto p-2.5 space-y-4">
+        <!-- Injected via JavaScript -->
+      </div>
+    </aside>
+
+    <!-- CENTER CANVAS VIEWPORT -->
+    <main class="flex-1 relative bg-[#0f1712] overflow-hidden" id="canvasContainer">
+      <canvas id="masterplanCanvas" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+
+      <!-- Scale Bar at Bottom-Left -->
+      <div class="absolute bottom-4 left-4 z-20 pointer-events-none flex flex-col items-start gap-1">
+        <div class="flex items-center text-[11px] font-mono font-semibold text-slate-300 drop-shadow">
+          <span id="scaleBarLabel">10 m</span>
+        </div>
+        <div class="flex items-center">
+          <div class="w-0.5 h-2.5 bg-white shadow"></div>
+          <div id="scaleBarLine" class="h-0.5 bg-white shadow" style="width: 60px;"></div>
+          <div class="w-0.5 h-2.5 bg-white shadow"></div>
+        </div>
+      </div>
+
+      <!-- Live Coordinates & Status Bar at Bottom Center -->
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none bg-black/70 backdrop-blur border border-white/10 px-3.5 py-1.5 rounded-full text-[10px] font-mono text-slate-400 flex items-center gap-3 shadow-lg">
+        <span>Cursor: <strong id="cursorCoordsText" class="text-slate-200">0m, 0m</strong></span>
+        <span class="text-white/20">•</span>
+        <span>Zoom: <strong id="zoomLevelText" class="text-emerald-400">100%</strong></span>
+        <span class="text-white/20">•</span>
+        <span>Assets: <strong id="assetCountText" class="text-slate-200">0</strong></span>
+        <span class="text-white/20">•</span>
+        <span id="modeStatusBadge" class="text-cyan-400 font-semibold">Select Mode</span>
+      </div>
+
+      <!-- Interactive Minimap at Bottom-Right -->
+      <div id="minimapContainer" class="absolute bottom-4 right-4 z-20 rounded-xl bg-[#0b130e]/90 border border-[#233527] overflow-hidden">
+        <div class="flex items-center justify-between px-2 py-1 bg-[#141f17] border-b border-[#233527] text-[9px] text-slate-400 font-mono">
+          <span>Minimap</span>
+          <button onclick="toggleMinimap()" class="hover:text-white" title="Minimize / Expand">_</button>
+        </div>
+        <canvas id="minimapCanvas" width="130" height="90" class="block cursor-crosshair"></canvas>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: PROPERTIES & SCHEDULE TABLE (Width: 320px) -->
+    <aside class="w-80 bg-[#111a14] border-l border-[#1f3024] flex flex-col shrink-0 z-20">
+      
+      <!-- Selected Asset Properties Panel (Top Half) -->
+      <div class="border-b border-[#1f3024] p-3 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div id="selectionStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></div>
+            <h3 class="font-bold text-xs text-white uppercase tracking-wider" id="propTitle">Asset Inspector</h3>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-mono bg-[#1c2e22] text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20" id="propCategoryBadge">None selected</span>
+            <span id="overlapWarningBadge" class="hidden text-[10px] font-mono bg-red-950/60 text-red-300 border border-red-500/40 px-1.5 py-0.5 rounded">Overlap</span>
+          </div>
+        </div>
+
+        <div id="noSelectionMessage" class="py-6 text-center text-xs text-slate-500">
+          <i data-lucide="mouse-pointer-click" class="w-6 h-6 mx-auto mb-1.5 text-slate-600"></i>
+          <span>Click any asset on the canvas or palette to inspect and edit measurements.</span>
+        </div>
+
+        <div id="propertiesForm" class="hidden space-y-2.5">
+          <!-- Metric Badges Row -->
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-[#0b130e] p-2 rounded-lg border border-[#1f3024]">
+              <span class="text-slate-400 block text-[10px]">Footprint Area</span>
+              <strong class="text-emerald-400 font-mono text-xs" id="propFootprint">0 m²</strong>
+            </div>
+            <div class="bg-[#0b130e] p-2 rounded-lg border border-[#1f3024]">
+              <span class="text-slate-400 block text-[10px]">Perimeter</span>
+              <strong class="text-cyan-400 font-mono text-xs" id="propPerimeter">0 m</strong>
+            </div>
+            <div class="bg-[#0b130e] p-2 rounded-lg border border-[#1f3024]">
+              <span class="text-slate-400 block text-[10px]">Est. Floor Count</span>
+              <strong class="text-amber-400 font-mono text-xs" id="propFloors">1 Floor</strong>
+            </div>
+            <div class="bg-[#0b130e] p-2 rounded-lg border border-[#1f3024]">
+              <span class="text-slate-400 block text-[10px]">Gross Floor Area (GFA)</span>
+              <strong class="text-blue-400 font-mono text-xs" id="propGFA">0 m²</strong>
+            </div>
+          </div>
+
+          <!-- Dimension Inputs -->
+          <div class="space-y-1.5 pt-1">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dimensions (Meters)</span>
+              <span class="text-[9px] text-slate-500">Use Arrow keys to nudge</span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">Width (m)</label>
+                <input 
+                  type="number" 
+                  id="propInputW" 
+                  step="1" 
+                  min="1" 
+                  max="500" 
+                  oninput="updateSelectedDimensions()"
+                  class="w-full px-2 py-1 bg-[#0b130e] border border-[#233527] rounded text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">Depth (m)</label>
+                <input 
+                  type="number" 
+                  id="propInputD" 
+                  step="1" 
+                  min="1" 
+                  max="500" 
+                  oninput="updateSelectedDimensions()"
+                  class="w-full px-2 py-1 bg-[#0b130e] border border-[#233527] rounded text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">Height (m)</label>
+                <input 
+                  type="number" 
+                  id="propInputH" 
+                  step="1" 
+                  min="0" 
+                  max="200" 
+                  oninput="updateSelectedDimensions()"
+                  class="w-full px-2 py-1 bg-[#0b130e] border border-[#233527] rounded text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <!-- Position Inputs (X, Y) -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">Position X (m)</label>
+                <input 
+                  type="number" 
+                  id="propInputX" 
+                  step="1" 
+                  oninput="updateSelectedPosition()"
+                  class="w-full px-2 py-1 bg-[#0b130e] border border-[#233527] rounded text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">Position Y (m)</label>
+                <input 
+                  type="number" 
+                  id="propInputY" 
+                  step="1" 
+                  oninput="updateSelectedPosition()"
+                  class="w-full px-2 py-1 bg-[#0b130e] border border-[#233527] rounded text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <!-- Rotation Buttons -->
+            <div class="flex items-center justify-between pt-1">
+              <label class="text-[10px] text-slate-400">Rotation Angle</label>
+              <div class="flex items-center gap-1">
+                <button onclick="setRotationAngle(0)" class="px-2 py-0.5 rounded text-[10px] bg-[#141f17] hover:bg-[#1f3024] border border-[#233527] text-slate-300">0°</button>
+                <button onclick="setRotationAngle(90)" class="px-2 py-0.5 rounded text-[10px] bg-[#141f17] hover:bg-[#1f3024] border border-[#233527] text-slate-300">90°</button>
+                <button onclick="setRotationAngle(180)" class="px-2 py-0.5 rounded text-[10px] bg-[#141f17] hover:bg-[#1f3024] border border-[#233527] text-slate-300">180°</button>
+                <button onclick="setRotationAngle(270)" class="px-2 py-0.5 rounded text-[10px] bg-[#141f17] hover:bg-[#1f3024] border border-[#233527] text-slate-300">270°</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Table Section (Bottom Half) -->
+      <div class="flex-1 flex flex-col overflow-hidden p-3">
+        <div class="flex items-center justify-between pb-2">
+          <h3 class="font-bold text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i>
+            <span>Site Schedule Table</span>
+          </h3>
+          <span class="text-[10px] font-mono text-slate-400" id="scheduleRowCount">0 items</span>
+        </div>
+
+        <!-- Site Totals Summary Card -->
+        <div class="bg-[#0b130e] p-2 rounded-lg border border-[#1f3024] mb-2 grid grid-cols-2 gap-2 text-[10px]">
+          <div>
+            <span class="text-slate-400 block">Total Footprint:</span>
+            <strong class="text-emerald-400 font-mono" id="totalFootprintText">0 m²</strong>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Total Gross Area:</span>
+            <strong class="text-blue-400 font-mono" id="totalGFAText">0 m²</strong>
+          </div>
+        </div>
+
+        <!-- Search / Filter Schedule Table -->
+        <div class="mb-1.5">
+          <input 
+            type="text" 
+            id="scheduleFilterInput" 
+            placeholder="Filter schedule rows..." 
+            oninput="filterScheduleTable(this.value)"
+            class="w-full px-2 py-1 bg-[#0c140e] border border-[#233527] rounded text-[10px] text-slate-300 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+
+        <!-- Table Container -->
+        <div class="flex-1 overflow-y-auto border border-[#1f3024] rounded-lg bg-[#0c140e]">
+          <table class="w-full text-left text-[11px] font-mono">
+            <thead class="bg-[#141f17] text-slate-400 text-[10px] sticky top-0 border-b border-[#1f3024]">
+              <tr>
+                <th class="py-1.5 px-2">Asset Name</th>
+                <th class="py-1.5 px-2 text-right">W × D × H</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody" class="divide-y divide-[#17261b] text-slate-300">
+              <!-- Injected via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- Load Masterplan Logic -->
+  <script src="/static/masterplan.js"></script>
+</body>
+</html>

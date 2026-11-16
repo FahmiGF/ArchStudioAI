@@ -94,8 +94,17 @@
         <!-- 1. Start Building -->
         <button onclick="closeMainMenu()" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/30 transition transform hover:-translate-y-0.5">
           <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-          <span>Start Building (Mulai Merancang)</span>
+          <span>Start Building (Mulai Merancang 3D)</span>
         </button>
+
+        <!-- Masterplan Studio Mode (15 Presets & 60+ Assets) -->
+        <a href="/masterplan" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-between shadow-xl shadow-emerald-600/30 transition transform hover:-translate-y-0.5">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="map" class="w-4 h-4 text-emerald-200"></i>
+            <span>Masterplan Studio (15 Presets & 60+ Assets)</span>
+          </div>
+          <span class="text-[10px] bg-black/25 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full font-mono">Baru • 2D CAD</span>
+        </a>
 
         <!-- 2. Pilih Preset Template Ruangan -->
         <button onclick="openPresetsFromMenu()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-xs flex items-center justify-between transition">
@@ -371,6 +380,11 @@
         <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
         <span>2D Blueprint CAD</span>
       </button>
+      <a href="/masterplan" id="btnMasterplanMode" class="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-emerald-200 font-medium flex items-center gap-1.5 transition border border-emerald-500/30" title="Buka Masterplan Studio (15 Presets & 60+ Assets)">
+        <i data-lucide="map" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Masterplan</span>
+        <span class="text-[9px] bg-emerald-500/30 text-emerald-200 px-1 py-0.2 rounded font-mono">15 Presets</span>
+      </a>
     </div>
 
     <!-- Quick Utilities -->
@@ -710,8 +724,22 @@
 
       <!-- Tab Content 4: Templates & Presets -->
       <div id="tabContentTemplates" class="hidden p-4 space-y-3 overflow-y-auto flex-1">
-        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-          <i data-lucide="layout-template" class="w-3.5 h-3.5 text-blue-400"></i> Pilihan Preset Template
+        <!-- Masterplan Studio Banner Card -->
+        <a href="/masterplan" class="block p-3 rounded-xl bg-gradient-to-r from-emerald-950/60 to-teal-950/60 border border-emerald-500/40 hover:border-emerald-400 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <i data-lucide="map" class="w-4 h-4 text-emerald-400"></i>
+              Masterplan Mode (15 Presets)
+            </span>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">Buka CAD</span>
+          </div>
+          <p class="text-[10px] text-slate-300 mt-1">
+            Site plan skala makro: Campus, Hospital, Mall, Airport, Downtown, dll.
+          </p>
+        </a>
+
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 pt-1">
+          <i data-lucide="layout-template" class="w-3.5 h-3.5 text-blue-400"></i> Pilihan Preset Ruangan 3D
         </h3>
         <div id="templateListContainer" class="space-y-2.5">
           <!-- Populated by JS -->

@@ -47,6 +47,15 @@ async def root():
     return RedirectResponse(url="/docs")
 
 
+@app.get("/masterplan", include_in_schema=False)
+async def masterplan():
+    """Serve ArchStudio Masterplan Studio."""
+    masterplan_file = STATIC_DIR / "masterplan.html"
+    if masterplan_file.exists():
+        return FileResponse(masterplan_file)
+    return RedirectResponse(url="/")
+
+
 @app.get("/api/health", tags=["Health"])
 async def health_check():
     """Service health check."""
